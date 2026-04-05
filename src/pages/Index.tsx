@@ -201,9 +201,9 @@ export default function Index() {
                 {screenExtras[activeScreen] && (
                   <span className="text-xs px-2.5 py-1 rounded-tag bg-white/[0.06] text-white/50">{screenExtras[activeScreen]}</span>
                 )}
-                {(activeScreen === 'leadgen' || activeScreen === 'outreach') && (
-                  <button className="text-xs px-3 py-1.5 rounded-button bg-white/[0.06] text-white/50 hover:text-white/70 transition-colors flex items-center gap-1.5">
-                    <Settings size={12} />Engine Room
+                {activeScreen === 'leadgen' && (
+                  <button onClick={() => setShowEngine(!showEngine)} className="text-xs px-3 py-1.5 rounded-button bg-white/[0.06] text-white/50 hover:text-white/70 transition-colors flex items-center gap-1.5">
+                    <RotateCcw size={12} /> {showEngine ? 'Back to Queue' : 'Engine Room'}
                   </button>
                 )}
                 <span className="text-sm text-white/65">{today}</span>
