@@ -36,7 +36,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-5 gap-4">
         {dashboardStats.map((stat) => (
           <div key={stat.label} className="liquid-glass rounded-card p-5 accent-hot">
-            <p className="font-bold text-[40px] leading-none text-white">{stat.value}</p>
+            <p className="font-bold text-[clamp(1.75rem,2.5vw,2.5rem)] leading-none tracking-tight text-white">{stat.value}</p>
             <p className="text-xs font-medium uppercase tracking-wider text-white/35 mt-2">{stat.label}</p>
             <span className="inline-block mt-2 text-xs font-medium px-2 py-0.5 rounded-tag bg-purple-primary/20 text-purple-primary">{stat.trend}</span>
           </div>

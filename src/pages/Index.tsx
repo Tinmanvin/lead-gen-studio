@@ -66,8 +66,8 @@ export default function Index() {
 
   const getTransform = () => {
     if (appState === 'app') return 'translateY(0%)';
-    if (isHovering) return 'translateY(10%)';
-    return 'translateY(28%)';
+    if (isHovering) return 'translateY(8%)';
+    return 'translateY(55%)';
   };
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -139,7 +139,10 @@ export default function Index() {
             onMouseLeave={() => appState === 'app' && setNavExpanded(false)}
           >
             {/* Logo in nav — click to return to idle */}
-            <div className="h-14 flex items-center px-5 cursor-pointer" onClick={handleReturnToIdle}>
+            <div
+              className={`flex cursor-pointer ${appState === 'idle' ? 'h-12 items-center justify-center px-0' : 'h-14 items-center px-5'}`}
+              onClick={handleReturnToIdle}
+            >
               {navExpanded ? <AtlasLogo /> : (
                 <LightningBolt size={20} />
               )}
