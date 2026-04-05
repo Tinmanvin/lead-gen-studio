@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState } from 'react';
 import { LayoutDashboard, Zap, Mail, Linkedin, Search, Hexagon, Settings } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
 import LeadGen from '@/components/LeadGen';
@@ -53,35 +53,15 @@ export default function Index() {
   const [activeScreen, setActiveScreen] = useState<Screen>('dashboard');
   const [navExpanded, setNavExpanded] = useState(false);
   const [heroVisible, setHeroVisible] = useState(true);
-  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const resetIdleTimer = useCallback(() => {
-    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-    if (appState === 'app') {
-      idleTimerRef.current = setTimeout(() => {
-        setAppState('idle');
-        setHeroVisible(true);
-      }, 15000);
-    }
-  }, [appState]);
-
-  useEffect(() => {
-    if (appState === 'app') {
-      const handler = () => resetIdleTimer();
-      window.addEventListener('mousemove', handler);
-      window.addEventListener('keydown', handler);
-      resetIdleTimer();
-      return () => {
-        window.removeEventListener('mousemove', handler);
-        window.removeEventListener('keydown', handler);
-        if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-      };
-    }
-  }, [appState, resetIdleTimer]);
 
   const handleExpandApp = () => {
     setAppState('app');
     setHeroVisible(false);
+  };
+
+  const handleReturnToIdle = () => {
+    setAppState('idle');
+    setHeroVisible(true);
   };
 
   const getTransform = () => {
@@ -154,8 +134,8 @@ export default function Index() {
             onMouseEnter={() => appState === 'app' && setNavExpanded(true)}
             onMouseLeave={() => appState === 'app' && setNavExpanded(false)}
           >
-            {/* Logo in nav */}
-            <div className="h-14 flex items-center px-5">
+            {/* Logo in nav — click to return to idle */}
+            <div className="h-14 flex items-center px-5 cursor-pointer" onClick={handleReturnToIdle}>
               {navExpanded ? <AtlasLogo /> : (
                 <LightningBolt size={20} />
               )}
@@ -215,7 +195,7 @@ export default function Index() {
             </div>
 
             {/* Screen content with curved top-left corner */}
-            <div className="flex-1 overflow-hidden rounded-tl-2xl" style={{ background: 'rgba(8, 6, 15, 0.70)' }}>
+            <div className="flex-1 overflow-hidden rounded-tl-2xl" style={{ background: 'rgba(8, 6, 15, 0.50)' }}>
               {activeScreen === 'dashboard' && <Dashboard />}
               {activeScreen === 'leadgen' && <LeadGen />}
               {activeScreen === 'outreach' && <Outreach />}
