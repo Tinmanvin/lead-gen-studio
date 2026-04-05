@@ -177,7 +177,7 @@ export default function Index() {
           </div>
 
           {/* Main area */}
-          <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex-1 flex flex-col min-w-0" style={{ background: 'rgba(8, 6, 15, 0.30)' }}>
             {/* Top bar — same chrome as sidebar */}
             <div className="nav-chrome h-14 flex items-center justify-between px-6 flex-shrink-0">
               <h2 className="font-serif text-2xl text-white">{screenTitles[activeScreen]}</h2>
@@ -195,9 +195,7 @@ export default function Index() {
             </div>
 
             {/* Screen content with curved top-left corner */}
-            <div className="flex-1 overflow-hidden rounded-tl-2xl relative" style={{ background: 'rgba(8, 6, 15, 0.30)' }}>
-              {/* Fill the corner gap behind the curve */}
-              <div className="absolute -top-px -left-px w-8 h-8 rounded-tl-2xl" style={{ background: 'rgba(8, 6, 15, 0.30)', zIndex: -1 }} />
+            <div className="flex-1 overflow-hidden rounded-tl-2xl" style={{ background: 'rgba(8, 6, 15, 0.15)' }}>
               {activeScreen === 'dashboard' && <Dashboard />}
               {activeScreen === 'leadgen' && <LeadGen />}
               {activeScreen === 'outreach' && <Outreach />}
