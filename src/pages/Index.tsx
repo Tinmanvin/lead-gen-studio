@@ -177,7 +177,7 @@ export default function Index() {
           </div>
 
           {/* Main area */}
-          <div className="flex-1 flex flex-col min-w-0" style={{ background: 'rgba(8, 6, 15, 0.30)' }}>
+          <div className="flex-1 flex flex-col min-w-0">
             {/* Top bar — same chrome as sidebar */}
             <div className="nav-chrome h-14 flex items-center justify-between px-6 flex-shrink-0">
               <h2 className="font-serif text-2xl text-white">{screenTitles[activeScreen]}</h2>
