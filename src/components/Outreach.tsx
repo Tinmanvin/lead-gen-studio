@@ -4,6 +4,13 @@ import { massEmailLeads, hotLeads } from '@/data/mockData';
 export default function Outreach() {
   const [activeTab, setActiveTab] = useState<'mass' | 'hot'>('mass');
 
+  const batchStats = [
+    { label: 'Total in Queue', value: '312' },
+    { label: 'With Demos', value: '89' },
+    { label: 'Redesigns', value: '42' },
+    { label: 'Est. Reply Rate', value: '14.2%' },
+  ];
+
   return (
     <div className="p-6 space-y-6 overflow-y-auto h-full">
       <div className="flex gap-6 border-b border-white/[0.06]">
@@ -19,15 +26,16 @@ export default function Outreach() {
 
       {activeTab === 'mass' ? (
         <>
-          <div className="liquid-glass rounded-card p-5">
-            <h3 className="font-semibold text-white mb-3">Batch Summary</h3>
-            <div className="grid grid-cols-4 gap-4 text-center">
-              <div><p className="text-2xl font-bold text-white">312</p><p className="text-xs text-white/35 uppercase tracking-wider mt-1">Total in Queue</p></div>
-              <div><p className="text-2xl font-bold text-white">89</p><p className="text-xs text-white/35 uppercase tracking-wider mt-1">With Demos</p></div>
-              <div><p className="text-2xl font-bold text-white">42</p><p className="text-xs text-white/35 uppercase tracking-wider mt-1">Redesigns</p></div>
-              <div><p className="text-2xl font-bold text-white">14.2%</p><p className="text-xs text-white/35 uppercase tracking-wider mt-1">Est. Reply Rate</p></div>
-            </div>
+          {/* Individual stat cards */}
+          <div className="grid grid-cols-4 gap-4">
+            {batchStats.map((s) => (
+              <div key={s.label} className="liquid-glass rounded-card p-5 accent-hot">
+                <p className="font-bold text-2xl leading-none tracking-tight text-white">{s.value}</p>
+                <p className="text-xs font-medium uppercase tracking-wider text-white/35 mt-2">{s.label}</p>
+              </div>
+            ))}
           </div>
+
           <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
             {massEmailLeads.map((lead, i) => (
               <div key={i} className={`liquid-glass rounded-card p-4 hover:-translate-y-0.5 transition-transform cursor-pointer ${lead.tier === 'hot' ? 'accent-hot' : lead.tier === 'standard' ? 'accent-standard' : 'accent-cold'}`}>
