@@ -62,6 +62,7 @@ export default function Index() {
   const handleReturnToIdle = () => {
     setAppState('idle');
     setHeroVisible(true);
+    setNavExpanded(false);
   };
 
   const getTransform = () => {
@@ -140,11 +141,14 @@ export default function Index() {
           >
             {/* Logo in nav — click to return to idle */}
             <div
-              className="flex cursor-pointer h-14 items-center px-5"
+              className="flex cursor-pointer h-14 items-center mx-2 px-3"
               onClick={handleReturnToIdle}
             >
-              {navExpanded ? <AtlasLogo /> : (
+              <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
                 <LightningBolt size={20} />
+              </div>
+              {navExpanded && (
+                <span className="font-serif italic text-lg text-white ml-3">Atlas AI</span>
               )}
             </div>
 
