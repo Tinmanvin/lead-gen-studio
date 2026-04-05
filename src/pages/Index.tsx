@@ -206,6 +206,7 @@ export default function Index() {
               {activeScreen === 'indeed' && <IndeedScreen />}
               {activeScreen === 'upwork' && <UpworkScreen />}
               {activeScreen === 'settings' && <SettingsScreen />}
+              </div>
             </div>
           </div>
         </div>
