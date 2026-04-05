@@ -125,39 +125,22 @@ export default function Index() {
         onMouseEnter={() => appState === 'idle' && setIsHovering(true)}
         onMouseLeave={() => appState === 'idle' && setIsHovering(false)}
       >
-        {/* Top bar spanning full width */}
-        <div className="nav-chrome h-14 flex items-center justify-between px-6 flex-shrink-0"
-          onMouseEnter={() => appState === 'app' && setNavExpanded(true)}
-          onMouseLeave={() => appState === 'app' && setNavExpanded(false)}
-        >
-          <div className="flex items-center gap-4">
-            <div className="cursor-pointer flex items-center" onClick={handleReturnToIdle} style={{ width: navExpanded ? 'auto' : 28 }}>
-              {navExpanded ? <AtlasLogo /> : <LightningBolt size={20} />}
-            </div>
-            <h2 className="font-serif text-2xl text-white">{screenTitles[activeScreen]}</h2>
-          </div>
-          <div className="flex items-center gap-3">
-            {screenExtras[activeScreen] && (
-              <span className="text-xs px-2.5 py-1 rounded-tag bg-white/[0.06] text-white/50">{screenExtras[activeScreen]}</span>
-            )}
-            {(activeScreen === 'leadgen' || activeScreen === 'outreach') && (
-              <button className="text-xs px-3 py-1.5 rounded-button bg-white/[0.06] text-white/50 hover:text-white/70 transition-colors flex items-center gap-1.5">
-                <Settings size={12} />Engine Room
-              </button>
-            )}
-            <span className="text-sm text-white/65">{today}</span>
-          </div>
-        </div>
-
-        {/* Below top bar: sidebar + content */}
-        <div className="flex flex-1 min-h-0">
+        {/* Unified chrome L-shape */}
+        <div className="flex h-full">
           {/* Sidebar */}
           <div
-            className={`nav-chrome flex flex-col ${navExpanded ? 'expanded' : ''}`}
+            className={`nav-chrome flex flex-col h-full ${navExpanded ? 'expanded' : ''}`}
             style={{ width: navExpanded ? 220 : 64, transition: 'width 250ms ease-out, background 250ms ease-out' }}
             onMouseEnter={() => appState === 'app' && setNavExpanded(true)}
             onMouseLeave={() => appState === 'app' && setNavExpanded(false)}
           >
+            {/* Logo in nav — click to return to idle */}
+            <div className="h-14 flex items-center px-5 cursor-pointer" onClick={handleReturnToIdle}>
+              {navExpanded ? <AtlasLogo /> : (
+                <LightningBolt size={20} />
+              )}
+            </div>
+
             {/* Nav items */}
             <div className="flex-1 py-4 px-2 space-y-1">
               {navItems.map((item) => {
@@ -193,15 +176,34 @@ export default function Index() {
             </div>
           </div>
 
-          {/* Screen content with curved top-left corner */}
-          <div className="flex-1 overflow-hidden rounded-tl-2xl" style={{ background: 'rgba(8, 6, 15, 0.30)' }}>
-            {activeScreen === 'dashboard' && <Dashboard />}
-            {activeScreen === 'leadgen' && <LeadGen />}
-            {activeScreen === 'outreach' && <Outreach />}
-            {activeScreen === 'linkedin' && <LinkedInScreen />}
-            {activeScreen === 'indeed' && <IndeedScreen />}
-            {activeScreen === 'upwork' && <UpworkScreen />}
-            {activeScreen === 'settings' && <SettingsScreen />}
+          {/* Main area */}
+          <div className="flex-1 flex flex-col min-w-0">
+            {/* Top bar — same chrome as sidebar */}
+            <div className="nav-chrome h-14 flex items-center justify-between px-6 flex-shrink-0">
+              <h2 className="font-serif text-2xl text-white">{screenTitles[activeScreen]}</h2>
+              <div className="flex items-center gap-3">
+                {screenExtras[activeScreen] && (
+                  <span className="text-xs px-2.5 py-1 rounded-tag bg-white/[0.06] text-white/50">{screenExtras[activeScreen]}</span>
+                )}
+                {(activeScreen === 'leadgen' || activeScreen === 'outreach') && (
+                  <button className="text-xs px-3 py-1.5 rounded-button bg-white/[0.06] text-white/50 hover:text-white/70 transition-colors flex items-center gap-1.5">
+                    <Settings size={12} />Engine Room
+                  </button>
+                )}
+                <span className="text-sm text-white/65">{today}</span>
+              </div>
+            </div>
+
+            {/* Screen content with curved top-left corner */}
+            <div className="flex-1 overflow-hidden rounded-tl-2xl" style={{ background: 'rgba(8, 6, 15, 0.30)' }}>
+              {activeScreen === 'dashboard' && <Dashboard />}
+              {activeScreen === 'leadgen' && <LeadGen />}
+              {activeScreen === 'outreach' && <Outreach />}
+              {activeScreen === 'linkedin' && <LinkedInScreen />}
+              {activeScreen === 'indeed' && <IndeedScreen />}
+              {activeScreen === 'upwork' && <UpworkScreen />}
+              {activeScreen === 'settings' && <SettingsScreen />}
+            </div>
           </div>
         </div>
       </div>
