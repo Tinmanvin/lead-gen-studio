@@ -1,16 +1,230 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { LayoutDashboard, Zap, Mail, Linkedin, Search, Hexagon, Settings } from 'lucide-react';
+import Dashboard from '@/components/Dashboard';
+import LeadGen from '@/components/LeadGen';
+import Outreach from '@/components/Outreach';
+import LinkedInScreen from '@/components/LinkedInScreen';
+import IndeedScreen from '@/components/IndeedScreen';
+import UpworkScreen from '@/components/UpworkScreen';
+import SettingsScreen from '@/components/SettingsScreen';
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
-  return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
-    </div>
-  );
+type Screen = 'dashboard' | 'leadgen' | 'outreach' | 'linkedin' | 'indeed' | 'upwork' | 'settings';
+
+const navItems: { icon: typeof LayoutDashboard; label: string; key: Screen }[] = [
+  { icon: LayoutDashboard, label: 'Dashboard', key: 'dashboard' },
+  { icon: Zap, label: 'Lead Gen', key: 'leadgen' },
+  { icon: Mail, label: 'Outreach', key: 'outreach' },
+  { icon: Linkedin, label: 'LinkedIn', key: 'linkedin' },
+  { icon: Search, label: 'Indeed', key: 'indeed' },
+  { icon: Hexagon, label: 'Upwork', key: 'upwork' },
+];
+
+const screenTitles: Record<Screen, string> = {
+  dashboard: 'Dashboard Overview',
+  leadgen: 'Lead Gen Engine',
+  outreach: 'Smart Outreach',
+  linkedin: 'LinkedIn Director',
+  indeed: 'Indeed Hijacker',
+  upwork: 'Upwork Scanner — Today\'s Gigs',
+  settings: 'Settings',
 };
 
-const Index = PlaceholderIndex;
+const screenExtras: Record<string, string> = {
+  upwork: '47 found globally',
+  indeed: '34 auto-fired today / 50 cap',
+};
 
-export default Index;
+const AtlasLogo = () => (
+  <div className="flex items-center gap-2">
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+      <path d="M16 2L2 28h28L16 2zm0 6l9.5 18h-19L16 8z" fill="white" />
+    </svg>
+    <span className="font-serif italic text-lg text-white">Atlas AI</span>
+  </div>
+);
+
+export default function Index() {
+  const [appState, setAppState] = useState<'idle' | 'app'>('idle');
+  const [isHovering, setIsHovering] = useState(false);
+  const [activeScreen, setActiveScreen] = useState<Screen>('dashboard');
+  const [navExpanded, setNavExpanded] = useState(false);
+  const [heroVisible, setHeroVisible] = useState(true);
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const resetIdleTimer = useCallback(() => {
+    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    if (appState === 'app') {
+      idleTimerRef.current = setTimeout(() => {
+        setAppState('idle');
+        setHeroVisible(true);
+      }, 15000);
+    }
+  }, [appState]);
+
+  useEffect(() => {
+    if (appState === 'app') {
+      const handler = () => resetIdleTimer();
+      window.addEventListener('mousemove', handler);
+      window.addEventListener('keydown', handler);
+      resetIdleTimer();
+      return () => {
+        window.removeEventListener('mousemove', handler);
+        window.removeEventListener('keydown', handler);
+        if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+      };
+    }
+  }, [appState, resetIdleTimer]);
+
+  const handleExpandApp = () => {
+    setAppState('app');
+    setHeroVisible(false);
+  };
+
+  const getTransform = () => {
+    if (appState === 'app') return 'translateY(0%)';
+    if (isHovering) return 'translateY(65%)';
+    return 'translateY(80%)';
+  };
+
+  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  return (
+    <div className="w-screen h-screen overflow-hidden" style={{ background: '#0d0b14' }}>
+      {/* Video background */}
+      <video
+        autoPlay loop muted playsInline
+        className="fixed inset-0 w-full h-full object-cover z-0 transition-opacity duration-500"
+        style={{ opacity: appState === 'idle' ? 1 : 0.15 }}
+        src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260210_031346_d87182fb-b0af-4273-84d1-c6fd17d6bf0f.mp4"
+      />
+
+      {/* Atlas AI Logo (idle only) */}
+      {appState === 'idle' && (
+        <div className="fixed top-6 left-8 z-20">
+          <AtlasLogo />
+        </div>
+      )}
+
+      {/* Hero content (idle) */}
+      <div
+        className="fixed inset-0 z-10 flex flex-col items-center justify-center pointer-events-none transition-all duration-500"
+        style={{ opacity: heroVisible && appState === 'idle' ? 1 : 0, transform: heroVisible && appState === 'idle' ? 'translateY(0)' : 'translateY(20px)' }}
+      >
+        {/* Tagline pill */}
+        <div className="flex items-center gap-2 h-[38px] px-4 rounded-button mb-8 pointer-events-auto" style={{ background: 'rgba(85,80,110,0.4)', backdropFilter: 'blur(12px)', border: '1px solid rgba(164,132,215,0.5)' }}>
+          <span className="px-2 py-0.5 rounded-tag bg-purple-primary text-white text-xs font-medium">New</span>
+          <span className="text-sm font-medium text-white">AI-powered lead generation.</span>
+        </div>
+
+        {/* Headline */}
+        <h1 className="font-serif text-white text-center leading-[1.05] max-w-4xl" style={{ fontSize: 'clamp(48px, 7vw, 96px)' }}>
+          Find them <em className="italic">before</em> they find someone else.
+        </h1>
+
+        {/* Subtext */}
+        <p className="text-white/70 text-lg text-center max-w-[580px] mt-6">
+          Signal-based scraping. AI-personalised outreach. Live demos delivered automatically.
+        </p>
+      </div>
+
+      {/* App container */}
+      <div
+        className="app-container liquid-glass z-30 flex flex-col"
+        style={{
+          transform: getTransform(),
+          transition: appState === 'app'
+            ? 'transform 600ms cubic-bezier(0.34, 1.56, 0.64, 1)'
+            : 'transform 400ms cubic-bezier(0.16, 1, 0.3, 1)',
+          cursor: appState === 'idle' ? 'pointer' : 'default',
+        }}
+        onClick={appState === 'idle' ? handleExpandApp : undefined}
+        onMouseEnter={() => appState === 'idle' && setIsHovering(true)}
+        onMouseLeave={() => appState === 'idle' && setIsHovering(false)}
+      >
+        {/* Unified chrome L-shape */}
+        <div className="flex h-full">
+          {/* Sidebar */}
+          <div
+            className={`nav-chrome flex flex-col h-full ${navExpanded ? 'expanded' : ''}`}
+            style={{ width: navExpanded ? 220 : 64, transition: 'width 250ms ease-out, background 250ms ease-out' }}
+            onMouseEnter={() => appState === 'app' && setNavExpanded(true)}
+            onMouseLeave={() => appState === 'app' && setNavExpanded(false)}
+          >
+            {/* Logo in nav */}
+            <div className="h-14 flex items-center px-5 border-b border-white/[0.06]">
+              {navExpanded ? <AtlasLogo /> : (
+                <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
+                  <path d="M16 2L2 28h28L16 2zm0 6l9.5 18h-19L16 8z" fill="white" />
+                </svg>
+              )}
+            </div>
+
+            {/* Nav items */}
+            <div className="flex-1 py-4 px-2 space-y-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeScreen === item.key;
+                return (
+                  <button
+                    key={item.key}
+                    onClick={() => setActiveScreen(item.key)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${isActive ? 'bg-purple-primary/20' : 'hover:bg-purple-primary/[0.15]'}`}
+                    style={isActive ? { borderLeft: '2px solid #7b39fc' } : undefined}
+                  >
+                    <Icon size={20} className={`flex-shrink-0 transition-colors ${isActive ? 'text-purple-primary' : 'text-white/40 group-hover:text-white/80'}`} />
+                    {navExpanded && (
+                      <span className={`text-sm font-medium whitespace-nowrap transition-opacity ${isActive ? 'text-white' : 'text-white/70'}`}>{item.label}</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Divider + Settings */}
+            <div className="px-2 pb-4">
+              <div className="border-t border-white/[0.06] mb-2" />
+              <button
+                onClick={() => setActiveScreen('settings')}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${activeScreen === 'settings' ? 'bg-purple-primary/20' : 'hover:bg-purple-primary/[0.15]'}`}
+                style={activeScreen === 'settings' ? { borderLeft: '2px solid #7b39fc' } : undefined}
+              >
+                <Settings size={20} className={`flex-shrink-0 ${activeScreen === 'settings' ? 'text-purple-primary' : 'text-white/40'}`} />
+                {navExpanded && <span className={`text-sm font-medium ${activeScreen === 'settings' ? 'text-white' : 'text-white/70'}`}>Settings</span>}
+              </button>
+            </div>
+          </div>
+
+          {/* Main area */}
+          <div className="flex-1 flex flex-col min-w-0">
+            {/* Top bar */}
+            <div className="h-14 flex items-center justify-between px-6 border-b border-white/[0.06] flex-shrink-0" style={{ background: appState === 'app' ? 'transparent' : undefined }}>
+              <h2 className="font-serif text-2xl text-white">{screenTitles[activeScreen]}</h2>
+              <div className="flex items-center gap-3">
+                {screenExtras[activeScreen] && (
+                  <span className="text-xs px-2.5 py-1 rounded-tag bg-white/[0.06] text-white/50">{screenExtras[activeScreen]}</span>
+                )}
+                {(activeScreen === 'leadgen' || activeScreen === 'outreach') && (
+                  <button className="text-xs px-3 py-1.5 rounded-button bg-white/[0.06] text-white/50 hover:text-white/70 transition-colors flex items-center gap-1.5">
+                    <Settings size={12} />Engine Room
+                  </button>
+                )}
+                <span className="text-sm text-white/65">{today}</span>
+              </div>
+            </div>
+
+            {/* Screen content */}
+            <div className="flex-1 overflow-hidden" style={{ background: 'rgba(8, 6, 15, 0.70)' }}>
+              {activeScreen === 'dashboard' && <Dashboard />}
+              {activeScreen === 'leadgen' && <LeadGen />}
+              {activeScreen === 'outreach' && <Outreach />}
+              {activeScreen === 'linkedin' && <LinkedInScreen />}
+              {activeScreen === 'indeed' && <IndeedScreen />}
+              {activeScreen === 'upwork' && <UpworkScreen />}
+              {activeScreen === 'settings' && <SettingsScreen />}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
