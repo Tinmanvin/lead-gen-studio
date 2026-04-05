@@ -195,10 +195,7 @@ export default function Index() {
             </div>
 
             {/* Screen content with curved top-left corner */}
-            <div className="flex-1 relative">
-              {/* Corner fill behind the rounded corner — matches nav-chrome visual appearance */}
-              <div className="absolute top-0 left-0 w-8 h-8 nav-chrome" />
-              <div className="absolute inset-0 overflow-hidden overflow-y-auto rounded-tl-2xl" style={{ background: 'rgba(8, 6, 15, 0.15)' }}>
+            <div className="flex-1 overflow-hidden rounded-tl-2xl" style={{ background: 'rgba(8, 6, 15, 0.30)' }}>
               {activeScreen === 'dashboard' && <Dashboard />}
               {activeScreen === 'leadgen' && <LeadGen />}
               {activeScreen === 'outreach' && <Outreach />}
@@ -206,7 +203,6 @@ export default function Index() {
               {activeScreen === 'indeed' && <IndeedScreen />}
               {activeScreen === 'upwork' && <UpworkScreen />}
               {activeScreen === 'settings' && <SettingsScreen />}
-              </div>
             </div>
           </div>
         </div>
