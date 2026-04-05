@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState } from 'react';
 import { LayoutDashboard, Zap, Mail, Linkedin, Search, Hexagon, Settings } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
 import LeadGen from '@/components/LeadGen';
