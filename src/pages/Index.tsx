@@ -66,8 +66,8 @@ export default function Index() {
 
   const getTransform = () => {
     if (appState === 'app') return 'translateY(0%)';
-    if (isHovering) return 'translateY(10%)';
-    return 'translateY(28%)';
+    if (isHovering) return 'translateY(8%)';
+    return 'translateY(55%)';
   };
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
