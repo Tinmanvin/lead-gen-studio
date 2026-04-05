@@ -34,11 +34,15 @@ const screenExtras: Record<string, string> = {
   indeed: '34 auto-fired today / 50 cap',
 };
 
+const LightningBolt = ({ size = 28 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M18 2L6 18h8l-2 12 12-16h-8L18 2z" />
+  </svg>
+);
+
 const AtlasLogo = () => (
   <div className="flex items-center gap-2">
-    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
-      <path d="M16 2L2 28h28L16 2zm0 6l9.5 18h-19L16 8z" fill="white" />
-    </svg>
+    <LightningBolt size={28} />
     <span className="font-serif italic text-lg text-white">Atlas AI</span>
   </div>
 );
