@@ -66,8 +66,8 @@ export default function Index() {
 
   const getTransform = () => {
     if (appState === 'app') return 'translateY(0%)';
-    if (isHovering) return 'translateY(65%)';
-    return 'translateY(80%)';
+    if (isHovering) return 'translateY(10%)';
+    return 'translateY(28%)';
   };
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -115,10 +115,10 @@ export default function Index() {
       <div
         className="app-container liquid-glass z-30 flex flex-col"
         style={{
-          top: appState === 'app' ? 8 : undefined,
+          top: appState === 'app' ? 8 : '55%',
           left: appState === 'app' ? 8 : 'calc(50% - 480px)',
           right: appState === 'app' ? 8 : 'calc(50% - 480px)',
-          bottom: appState === 'app' ? 8 : 8,
+          bottom: 8,
           transform: getTransform(),
           transition: appState === 'app'
             ? 'transform 600ms cubic-bezier(0.34, 1.56, 0.64, 1), left 600ms cubic-bezier(0.34, 1.56, 0.64, 1), right 600ms cubic-bezier(0.34, 1.56, 0.64, 1), top 600ms cubic-bezier(0.34, 1.56, 0.64, 1)'
@@ -199,7 +199,7 @@ export default function Index() {
             </div>
 
             {/* Screen content with curved top-left corner */}
-            <div className="flex-1 overflow-hidden rounded-tl-2xl" style={{ background: 'rgba(8, 6, 15, 0.30)' }}>
+            <div key={appState} className="flex-1 overflow-hidden rounded-tl-2xl" style={{ background: 'rgba(8, 6, 15, 0.30)' }}>
               {activeScreen === 'dashboard' && <Dashboard />}
               {activeScreen === 'leadgen' && <LeadGen />}
               {activeScreen === 'outreach' && <Outreach />}
