@@ -66,7 +66,7 @@ export default function Index() {
 
   const getTransform = () => {
     if (appState === 'app') return 'translateY(0%)';
-    if (isHovering) return 'translateY(8%)';
+    if (isHovering) return 'translateY(22%)';
     return 'translateY(55%)';
   };
 
@@ -140,7 +140,7 @@ export default function Index() {
           >
             {/* Logo in nav — click to return to idle */}
             <div
-              className={`flex cursor-pointer ${appState === 'idle' ? 'h-12 items-center justify-center px-0' : 'h-14 items-center px-5'}`}
+              className="flex cursor-pointer h-14 items-center px-5"
               onClick={handleReturnToIdle}
             >
               {navExpanded ? <AtlasLogo /> : (
