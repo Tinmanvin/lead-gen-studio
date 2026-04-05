@@ -143,8 +143,6 @@ export default function Index() {
               className="flex cursor-pointer h-14 items-center px-5"
               onClick={handleReturnToIdle}
             >
-              onClick={handleReturnToIdle}
-            >
               {navExpanded ? <AtlasLogo /> : (
                 <LightningBolt size={20} />
               )}
