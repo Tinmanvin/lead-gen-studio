@@ -118,11 +118,11 @@
 
 /* Nav chrome */
 .nav-chrome {
-  background: rgba(20, 15, 40, 0.25);
+  background: rgba(20, 15, 40, 0.15);
   transition: background 250ms ease-out, width 250ms ease-out;
 }
 .nav-chrome.expanded {
-  background: rgba(20, 15, 40, 0.40);
+  background: rgba(20, 15, 40, 0.25);
 }
 
 /* Scrollbar */
