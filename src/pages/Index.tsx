@@ -66,7 +66,7 @@ export default function Index() {
 
   const getTransform = () => {
     if (appState === 'app') return 'translateY(0%)';
-    if (isHovering) return 'translateY(8%)';
+    if (isHovering) return 'translateY(22%)';
     return 'translateY(55%)';
   };
 
