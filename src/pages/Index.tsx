@@ -165,7 +165,7 @@ export default function Index() {
                 return (
                   <button
                     key={item.key}
-                    onClick={() => setActiveScreen(item.key)}
+                    onClick={() => { setActiveScreen(item.key); setShowEngine(false); }}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${isActive ? 'bg-purple-primary/20' : 'hover:bg-purple-primary/[0.15]'}`}
                     style={isActive ? { borderLeft: '2px solid #7b39fc' } : undefined}
                   >
