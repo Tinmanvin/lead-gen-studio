@@ -53,35 +53,15 @@ export default function Index() {
   const [activeScreen, setActiveScreen] = useState<Screen>('dashboard');
   const [navExpanded, setNavExpanded] = useState(false);
   const [heroVisible, setHeroVisible] = useState(true);
-  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const resetIdleTimer = useCallback(() => {
-    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-    if (appState === 'app') {
-      idleTimerRef.current = setTimeout(() => {
-        setAppState('idle');
-        setHeroVisible(true);
-      }, 15000);
-    }
-  }, [appState]);
-
-  useEffect(() => {
-    if (appState === 'app') {
-      const handler = () => resetIdleTimer();
-      window.addEventListener('mousemove', handler);
-      window.addEventListener('keydown', handler);
-      resetIdleTimer();
-      return () => {
-        window.removeEventListener('mousemove', handler);
-        window.removeEventListener('keydown', handler);
-        if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-      };
-    }
-  }, [appState, resetIdleTimer]);
 
   const handleExpandApp = () => {
     setAppState('app');
     setHeroVisible(false);
+  };
+
+  const handleReturnToIdle = () => {
+    setAppState('idle');
+    setHeroVisible(true);
   };
 
   const getTransform = () => {
