@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LayoutDashboard, Zap, Mail, Linkedin, Search, Hexagon, Settings } from 'lucide-react';
+import { LayoutDashboard, Zap, Mail, Linkedin, Search, Hexagon, Settings, RotateCcw } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
 import LeadGen from '@/components/LeadGen';
 import Outreach from '@/components/Outreach';
