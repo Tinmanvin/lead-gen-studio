@@ -23,9 +23,20 @@ const EngineRoom = () => (
       {geographySettings.map((g, i) => (
         <div key={g.country} className="flex items-center justify-between py-3" style={{ borderBottom: i < geographySettings.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
           <span className="text-sm text-white">{g.flag} {g.country}</span>
-          <div className="flex gap-6">
-            <span className="text-xs text-white/50">Scrape: <span className="text-white font-medium">{g.scrape ? 'ON' : 'OFF'}</span></span>
-            <span className="text-xs text-white/50">Outreach: <span className={g.outreach ? 'text-white font-medium' : 'text-white/30'}>{g.outreach ? 'ON' : 'DORMANT'}</span></span>
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-white/50">Scrape</span>
+              <div className={`w-10 h-5 rounded-full relative cursor-pointer transition-colors ${g.scrape ? 'bg-purple-primary' : 'bg-white/[0.1]'}`}>
+                <div className={`w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all ${g.scrape ? 'right-0.5' : 'left-0.5'}`} />
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-white/50">Outreach</span>
+              <div className={`w-10 h-5 rounded-full relative cursor-pointer transition-colors ${g.outreach ? 'bg-purple-primary' : 'bg-white/[0.1]'}`}>
+                <div className={`w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all ${g.outreach ? 'right-0.5' : 'left-0.5'}`} />
+              </div>
+              {!g.outreach && <span className="text-xs text-white/30">DORMANT</span>}
+            </div>
           </div>
         </div>
       ))}
@@ -34,8 +45,8 @@ const EngineRoom = () => (
     {/* Data Sources */}
     <div className="liquid-glass rounded-card p-5">
       <h3 className="font-semibold text-[16px] text-white mb-4">Data Sources</h3>
-      {['Google Maps', 'Yellow Pages', 'LinkedIn', 'Indeed'].map((s) => (
-        <div key={s} className="flex items-center justify-between py-2.5">
+      {['Google Maps', 'Yellow Pages', 'LinkedIn', 'Indeed'].map((s, i, arr) => (
+        <div key={s} className="flex items-center justify-between py-2.5" style={{ borderBottom: i < arr.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
           <span className="text-sm text-white">{s}</span>
           <div className="w-10 h-5 rounded-full bg-purple-primary relative cursor-pointer">
             <div className="w-4 h-4 rounded-full bg-white absolute top-0.5 right-0.5 transition-all" />
@@ -53,8 +64,8 @@ const EngineRoom = () => (
     {/* Signal Filters */}
     <div className="liquid-glass rounded-card p-5">
       <h3 className="font-semibold text-[16px] text-white mb-4">Signal Filters</h3>
-      {['Hiring signals (Indeed/LinkedIn)', 'Outdated website detected', 'No mobile-responsive site', 'High local search volume'].map((s) => (
-        <div key={s} className="flex items-center justify-between py-2.5">
+      {['Hiring signals (Indeed/LinkedIn)', 'Outdated website detected', 'No mobile-responsive site', 'High local search volume'].map((s, i, arr) => (
+        <div key={s} className="flex items-center justify-between py-2.5" style={{ borderBottom: i < arr.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
           <span className="text-sm text-white/80">{s}</span>
           <div className="w-10 h-5 rounded-full bg-purple-primary relative cursor-pointer">
             <div className="w-4 h-4 rounded-full bg-white absolute top-0.5 right-0.5 transition-all" />
