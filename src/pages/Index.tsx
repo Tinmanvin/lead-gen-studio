@@ -108,7 +108,7 @@ export default function Index() {
       {/* Hero content (idle) */}
       <div
         className="fixed inset-0 z-10 flex flex-col items-center justify-center pointer-events-none transition-all duration-500"
-        style={{ opacity: heroVisible && appState === 'idle' ? 1 : 0, transform: heroVisible && appState === 'idle' ? 'translateY(0)' : 'translateY(20px)' }}
+        style={{ opacity: heroVisible && appState === 'idle' ? 1 : 0, transform: heroVisible && appState === 'idle' ? 'translateY(-15%)' : 'translateY(-10%)' }}
       >
         {/* Tagline pill */}
         <div className="flex items-center gap-2 h-[38px] px-4 rounded-button mb-8 pointer-events-auto" style={{ background: 'rgba(85,80,110,0.4)', backdropFilter: 'blur(12px)', border: '1px solid rgba(164,132,215,0.5)' }}>
@@ -118,7 +118,7 @@ export default function Index() {
 
         {/* Headline */}
         <h1 className="font-serif text-white text-center leading-[1.05] max-w-4xl" style={{ fontSize: 'clamp(48px, 7vw, 96px)' }}>
-          Find them <em className="italic">before</em> they find someone else.
+          Find them <em className="italic">before</em> they<br />find someone else.
         </h1>
 
         {/* Subtext */}
