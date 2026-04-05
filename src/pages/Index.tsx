@@ -134,8 +134,8 @@ export default function Index() {
             onMouseEnter={() => appState === 'app' && setNavExpanded(true)}
             onMouseLeave={() => appState === 'app' && setNavExpanded(false)}
           >
-            {/* Logo in nav */}
-            <div className="h-14 flex items-center px-5">
+            {/* Logo in nav — click to return to idle */}
+            <div className="h-14 flex items-center px-5 cursor-pointer" onClick={handleReturnToIdle}>
               {navExpanded ? <AtlasLogo /> : (
                 <LightningBolt size={20} />
               )}
