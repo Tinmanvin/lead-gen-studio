@@ -115,10 +115,14 @@ export default function Index() {
       <div
         className="app-container liquid-glass z-30 flex flex-col"
         style={{
+          top: appState === 'app' ? 8 : undefined,
+          left: appState === 'app' ? 8 : 'calc(50% - 480px)',
+          right: appState === 'app' ? 8 : 'calc(50% - 480px)',
+          bottom: appState === 'app' ? 8 : 8,
           transform: getTransform(),
           transition: appState === 'app'
-            ? 'transform 600ms cubic-bezier(0.34, 1.56, 0.64, 1)'
-            : 'transform 400ms cubic-bezier(0.16, 1, 0.3, 1)',
+            ? 'transform 600ms cubic-bezier(0.34, 1.56, 0.64, 1), left 600ms cubic-bezier(0.34, 1.56, 0.64, 1), right 600ms cubic-bezier(0.34, 1.56, 0.64, 1), top 600ms cubic-bezier(0.34, 1.56, 0.64, 1)'
+            : 'transform 400ms cubic-bezier(0.16, 1, 0.3, 1), left 400ms cubic-bezier(0.16, 1, 0.3, 1), right 400ms cubic-bezier(0.16, 1, 0.3, 1), top 400ms cubic-bezier(0.16, 1, 0.3, 1)',
           cursor: appState === 'idle' ? 'pointer' : 'default',
         }}
         onClick={appState === 'idle' ? handleExpandApp : undefined}
