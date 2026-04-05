@@ -213,7 +213,7 @@ export default function Index() {
             {/* Screen content with curved top-left corner */}
             <div key={appState} className="flex-1 overflow-hidden rounded-tl-2xl" style={{ background: 'rgba(8, 6, 15, 0.30)' }}>
               {activeScreen === 'dashboard' && <Dashboard onNavigate={(screen) => setActiveScreen(screen as Screen)} />}
-              {activeScreen === 'leadgen' && <LeadGen />}
+              {activeScreen === 'leadgen' && <LeadGen showEngine={showEngine} onToggleEngine={() => setShowEngine(!showEngine)} />}
               {activeScreen === 'outreach' && <Outreach />}
               {activeScreen === 'linkedin' && <LinkedInScreen />}
               {activeScreen === 'indeed' && <IndeedScreen />}
