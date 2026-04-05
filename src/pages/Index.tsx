@@ -199,7 +199,7 @@ export default function Index() {
             </div>
 
             {/* Screen content with curved top-left corner */}
-            <div className="flex-1 overflow-hidden rounded-tl-2xl" style={{ background: 'rgba(8, 6, 15, 0.30)' }}>
+            <div key={appState} className="flex-1 overflow-hidden rounded-tl-2xl" style={{ background: 'rgba(8, 6, 15, 0.30)' }}>
               {activeScreen === 'dashboard' && <Dashboard />}
               {activeScreen === 'leadgen' && <LeadGen />}
               {activeScreen === 'outreach' && <Outreach />}
