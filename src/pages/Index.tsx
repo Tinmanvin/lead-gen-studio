@@ -53,6 +53,7 @@ export default function Index() {
   const [activeScreen, setActiveScreen] = useState<Screen>('dashboard');
   const [navExpanded, setNavExpanded] = useState(false);
   const [heroVisible, setHeroVisible] = useState(true);
+  const [showEngine, setShowEngine] = useState(false);
 
   const handleExpandApp = () => {
     setAppState('app');
