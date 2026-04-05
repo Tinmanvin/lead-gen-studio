@@ -35,7 +35,6 @@ const EngineRoom = () => (
               <div className={`w-10 h-5 rounded-full relative cursor-pointer transition-colors ${g.outreach ? 'bg-purple-primary' : 'bg-white/[0.1]'}`}>
                 <div className={`w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all ${g.outreach ? 'right-0.5' : 'left-0.5'}`} />
               </div>
-              {!g.outreach && <span className="text-xs text-white/30">DORMANT</span>}
             </div>
           </div>
         </div>
