@@ -102,7 +102,7 @@
   right: 8px;
   bottom: 8px;
   border-radius: 16px;
-  background: rgba(8, 6, 15, 0.45);
+  background: rgba(8, 6, 15, 0.25);
   backdrop-filter: blur(40px);
   -webkit-backdrop-filter: blur(40px);
   box-shadow:
