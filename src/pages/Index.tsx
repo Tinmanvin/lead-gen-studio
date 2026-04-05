@@ -78,7 +78,7 @@ export default function Index() {
       <video
         autoPlay loop muted playsInline
         className="fixed inset-0 w-full h-full object-cover z-0 transition-opacity duration-500"
-        style={{ opacity: appState === 'idle' ? 1 : 0.15 }}
+        style={{ opacity: appState === 'idle' ? 1 : 0.5 }}
         src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260210_031346_d87182fb-b0af-4273-84d1-c6fd17d6bf0f.mp4"
       />
 
