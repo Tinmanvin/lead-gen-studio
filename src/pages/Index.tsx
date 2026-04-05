@@ -118,7 +118,7 @@ export default function Index() {
 
         {/* Headline */}
         <h1 className="font-serif text-white text-center leading-[1.05] max-w-4xl" style={{ fontSize: 'clamp(48px, 7vw, 96px)' }}>
-          Find them <em className="italic">before</em> they find someone else.
+          Find them <em className="italic">before</em> they<br />find someone else.
         </h1>
 
         {/* Subtext */}
