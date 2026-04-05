@@ -27,7 +27,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-export default function Dashboard() {
+export default function Dashboard({ onNavigate }: { onNavigate?: (screen: string) => void }) {
   const [timeRange, setTimeRange] = useState('7D');
 
   return (
