@@ -62,6 +62,7 @@ export default function Index() {
   const handleReturnToIdle = () => {
     setAppState('idle');
     setHeroVisible(true);
+    setNavExpanded(false);
   };
 
   const getTransform = () => {
