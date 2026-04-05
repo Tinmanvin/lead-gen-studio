@@ -155,7 +155,7 @@ export default function Index() {
             onMouseLeave={() => appState === 'app' && setNavExpanded(false)}
           >
             {/* Logo in nav */}
-            <div className="h-14 flex items-center px-5 border-b border-white/[0.06]">
+            <div className="h-14 flex items-center px-5">
               {navExpanded ? <AtlasLogo /> : (
                 <LightningBolt size={20} />
               )}
@@ -198,8 +198,8 @@ export default function Index() {
 
           {/* Main area */}
           <div className="flex-1 flex flex-col min-w-0">
-            {/* Top bar */}
-            <div className="h-14 flex items-center justify-between px-6 border-b border-white/[0.06] flex-shrink-0" style={{ background: appState === 'app' ? 'transparent' : undefined }}>
+            {/* Top bar — same chrome as sidebar */}
+            <div className="nav-chrome h-14 flex items-center justify-between px-6 flex-shrink-0">
               <h2 className="font-serif text-2xl text-white">{screenTitles[activeScreen]}</h2>
               <div className="flex items-center gap-3">
                 {screenExtras[activeScreen] && (
@@ -214,8 +214,8 @@ export default function Index() {
               </div>
             </div>
 
-            {/* Screen content */}
-            <div className="flex-1 overflow-hidden" style={{ background: 'rgba(8, 6, 15, 0.70)' }}>
+            {/* Screen content with curved top-left corner */}
+            <div className="flex-1 overflow-hidden rounded-tl-2xl" style={{ background: 'rgba(8, 6, 15, 0.70)' }}>
               {activeScreen === 'dashboard' && <Dashboard />}
               {activeScreen === 'leadgen' && <LeadGen />}
               {activeScreen === 'outreach' && <Outreach />}
