@@ -115,10 +115,10 @@ export default function Index() {
       <div
         className="app-container liquid-glass z-30 flex flex-col"
         style={{
-          top: appState === 'app' ? 8 : undefined,
+          top: appState === 'app' ? 8 : '55%',
           left: appState === 'app' ? 8 : 'calc(50% - 480px)',
           right: appState === 'app' ? 8 : 'calc(50% - 480px)',
-          bottom: appState === 'app' ? 8 : 8,
+          bottom: 8,
           transform: getTransform(),
           transition: appState === 'app'
             ? 'transform 600ms cubic-bezier(0.34, 1.56, 0.64, 1), left 600ms cubic-bezier(0.34, 1.56, 0.64, 1), right 600ms cubic-bezier(0.34, 1.56, 0.64, 1), top 600ms cubic-bezier(0.34, 1.56, 0.64, 1)'
