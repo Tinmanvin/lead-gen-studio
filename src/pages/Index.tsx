@@ -157,9 +157,7 @@ export default function Index() {
             {/* Logo in nav */}
             <div className="h-14 flex items-center px-5 border-b border-white/[0.06]">
               {navExpanded ? <AtlasLogo /> : (
-                <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
-                  <path d="M16 2L2 28h28L16 2zm0 6l9.5 18h-19L16 8z" fill="white" />
-                </svg>
+                <LightningBolt size={20} />
               )}
             </div>
 
