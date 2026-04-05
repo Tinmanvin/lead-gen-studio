@@ -135,7 +135,11 @@ export default function Index() {
           {/* Sidebar */}
           <div
             className={`nav-chrome flex flex-col h-full ${navExpanded ? 'expanded' : ''}`}
-            style={{ width: navExpanded ? 220 : 64, transition: 'width 250ms ease-out, background 250ms ease-out' }}
+            style={{
+              width: navExpanded ? 220 : 64,
+              paddingTop: appState === 'idle' ? 14 : 0,
+              transition: 'width 250ms ease-out, background 250ms ease-out, padding-top 400ms ease-out'
+            }}
             onMouseEnter={() => appState === 'app' && setNavExpanded(true)}
             onMouseLeave={() => appState === 'app' && setNavExpanded(false)}
           >
