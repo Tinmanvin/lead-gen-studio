@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LayoutDashboard, Zap, Mail, Linkedin, Search, Hexagon, Settings } from 'lucide-react';
+import { LayoutDashboard, Zap, Mail, Linkedin, Search, Hexagon, Settings, RotateCcw } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
 import LeadGen from '@/components/LeadGen';
 import Outreach from '@/components/Outreach';
@@ -53,6 +53,7 @@ export default function Index() {
   const [activeScreen, setActiveScreen] = useState<Screen>('dashboard');
   const [navExpanded, setNavExpanded] = useState(false);
   const [heroVisible, setHeroVisible] = useState(true);
+  const [showEngine, setShowEngine] = useState(false);
 
   const handleExpandApp = () => {
     setAppState('app');
@@ -164,7 +165,7 @@ export default function Index() {
                 return (
                   <button
                     key={item.key}
-                    onClick={() => setActiveScreen(item.key)}
+                    onClick={() => { setActiveScreen(item.key); setShowEngine(false); }}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${isActive ? 'bg-purple-primary/20' : 'hover:bg-purple-primary/[0.15]'}`}
                     style={isActive ? { borderLeft: '2px solid #7b39fc' } : undefined}
                   >
@@ -200,9 +201,9 @@ export default function Index() {
                 {screenExtras[activeScreen] && (
                   <span className="text-xs px-2.5 py-1 rounded-tag bg-white/[0.06] text-white/50">{screenExtras[activeScreen]}</span>
                 )}
-                {(activeScreen === 'leadgen' || activeScreen === 'outreach') && (
-                  <button className="text-xs px-3 py-1.5 rounded-button bg-white/[0.06] text-white/50 hover:text-white/70 transition-colors flex items-center gap-1.5">
-                    <Settings size={12} />Engine Room
+                {activeScreen === 'leadgen' && (
+                  <button onClick={() => setShowEngine(!showEngine)} className="text-xs px-3 py-1.5 rounded-button bg-white/[0.06] text-white/50 hover:text-white/70 transition-colors flex items-center gap-1.5">
+                    <RotateCcw size={12} /> {showEngine ? 'Back to Queue' : 'Engine Room'}
                   </button>
                 )}
                 <span className="text-sm text-white/65">{today}</span>
@@ -212,7 +213,7 @@ export default function Index() {
             {/* Screen content with curved top-left corner */}
             <div key={appState} className="flex-1 overflow-hidden rounded-tl-2xl" style={{ background: 'rgba(8, 6, 15, 0.30)' }}>
               {activeScreen === 'dashboard' && <Dashboard onNavigate={(screen) => setActiveScreen(screen as Screen)} />}
-              {activeScreen === 'leadgen' && <LeadGen />}
+              {activeScreen === 'leadgen' && <LeadGen showEngine={showEngine} onToggleEngine={() => setShowEngine(!showEngine)} />}
               {activeScreen === 'outreach' && <Outreach />}
               {activeScreen === 'linkedin' && <LinkedInScreen />}
               {activeScreen === 'indeed' && <IndeedScreen />}
