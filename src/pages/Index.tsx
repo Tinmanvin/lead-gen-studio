@@ -140,7 +140,9 @@ export default function Index() {
           >
             {/* Logo in nav — click to return to idle */}
             <div
-              className={`flex cursor-pointer ${appState === 'idle' ? 'h-12 items-center justify-center px-0' : 'h-14 items-center px-5'}`}
+              className="flex cursor-pointer h-14 items-center px-5"
+              onClick={handleReturnToIdle}
+            >
               onClick={handleReturnToIdle}
             >
               {navExpanded ? <AtlasLogo /> : (
