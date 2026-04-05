@@ -7,11 +7,11 @@ export const dashboardStats = [
 ];
 
 export const briefingItems = [
-  { color: '#ef4444', text: '23 hot leads need review — 8 scored above 90', link: 'Lead Gen', dotOpacity: 0.7 },
-  { color: '#f59e0b', text: 'LinkedIn daily send budget at 12/15 — 3 remaining', link: 'LinkedIn', dotOpacity: 0.7 },
-  { color: '#7b39fc', text: 'Indeed Hijacker fired 34 emails overnight — 4 opens', link: 'Indeed', dotOpacity: 0.7 },
-  { color: 'rgba(255,255,255,0.2)', text: 'Upwork scanner completed — 47 gigs matched', link: 'Upwork', dotOpacity: 1 },
-  { color: '#7b39fc', text: 'Email sequence "Redesign Pitch v3" performing +18% vs control', link: 'Outreach', dotOpacity: 0.7 },
+  { color: '#ef4444', text: '23 hot leads need review — 8 scored above 90', link: 'Lead Gen', screen: 'leadgen', dotOpacity: 0.7 },
+  { color: '#f59e0b', text: 'LinkedIn daily send budget at 12/15 — 3 remaining', link: 'LinkedIn', screen: 'linkedin', dotOpacity: 0.7 },
+  { color: '#7b39fc', text: 'Indeed Hijacker fired 34 emails overnight — 4 opens', link: 'Indeed', screen: 'indeed', dotOpacity: 0.7 },
+  { color: 'rgba(255,255,255,0.2)', text: 'Upwork scanner completed — 47 gigs matched', link: 'Upwork', screen: 'upwork', dotOpacity: 1 },
+  { color: '#7b39fc', text: 'Email sequence "Redesign Pitch v3" performing +18% vs control', link: 'Outreach', screen: 'outreach', dotOpacity: 0.7 },
 ];
 
 export const performanceBlocks = [

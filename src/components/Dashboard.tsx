@@ -27,7 +27,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-export default function Dashboard() {
+export default function Dashboard({ onNavigate }: { onNavigate?: (screen: string) => void }) {
   const [timeRange, setTimeRange] = useState('7D');
 
   return (
@@ -43,65 +43,52 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Row 2 — Briefing */}
-      <div className="liquid-glass rounded-card p-5">
-        <h3 className="font-semibold text-[16px] text-white mb-4">Today's Briefing</h3>
-        <div className="space-y-1">
-          {briefingItems.map((item, i) => (
-            <div key={i} className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-white/[0.04] cursor-pointer transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color, opacity: item.dotOpacity }} />
-                <span className="text-sm text-white">{item.text}</span>
+      {/* Row 2 — Briefing (1/3) + Chart (2/3) */}
+      <div className="grid grid-cols-3 gap-4">
+        {/* Today's Briefing — compact */}
+        <div className="liquid-glass rounded-card p-5 col-span-1">
+          <h3 className="font-semibold text-[16px] text-white mb-4">Today's Briefing</h3>
+          <div className="space-y-1">
+            {briefingItems.map((item, i) => (
+              <div
+                key={i}
+                className="flex items-start gap-3 py-2.5 px-3 rounded-lg hover:bg-purple-primary/10 cursor-pointer transition-colors group"
+                onClick={() => onNavigate?.(item.screen)}
+              >
+                <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1" style={{ backgroundColor: item.color, opacity: item.dotOpacity }} />
+                <span className="text-sm text-white/80 group-hover:text-purple-primary transition-colors leading-snug">{item.text}</span>
               </div>
-              <span className="text-sm text-purple-primary font-medium">{item.link} →</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Row 3 — Performance */}
-      <div className="grid grid-cols-4 gap-4">
-        {performanceBlocks.map((block) => (
-          <div key={block.title} className="liquid-glass rounded-card p-5 accent-standard">
-            <h4 className="text-xs font-medium uppercase tracking-wider text-white/35 mb-4">{block.title}</h4>
-            <div className="space-y-3">
-              {block.metrics.map((m) => (
-                <div key={m.label} className="flex justify-between items-baseline">
-                  <span className="text-xs text-white/65">{m.label}</span>
-                  <span className="text-xl font-semibold text-white">{m.value}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Row 4 — Chart */}
-      <div className="liquid-glass rounded-card p-5">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="font-semibold text-[16px] text-white">7-Day Performance</h3>
-          <div className="flex gap-1 liquid-glass rounded-button p-1">
-            {['7D', '14D', '30D'].map((r) => (
-              <button key={r} onClick={() => setTimeRange(r)} className={`px-3 py-1 rounded-tag text-xs font-medium transition-colors ${timeRange === r ? 'bg-purple-primary text-white' : 'text-white/40 hover:text-white/70'}`}>{r}</button>
             ))}
           </div>
         </div>
-        <ResponsiveContainer width="100%" height={240}>
-          <AreaChart data={chartData}>
-            <defs>
-              <linearGradient id="purpleGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#7b39fc" stopOpacity={0.12} />
-                <stop offset="100%" stopColor="#7b39fc" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 11 }} />
-            <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 11 }} />
-            <Tooltip content={<CustomTooltip />} />
-            <Area type="monotone" dataKey="replyRate" name="Reply Rate" stroke="#7b39fc" strokeWidth={2} fill="url(#purpleGrad)" />
-            <Line type="monotone" dataKey="demoClicks" name="Demo Clicks" stroke="rgba(164,132,215,0.7)" strokeWidth={1.5} dot={false} />
-            <Line type="monotone" dataKey="emailsSent" name="Emails Sent" stroke="rgba(255,255,255,0.25)" strokeWidth={1} dot={false} />
-          </AreaChart>
-        </ResponsiveContainer>
+
+        {/* 7-Day Performance Chart */}
+        <div className="liquid-glass rounded-card p-5 col-span-2">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="font-semibold text-[16px] text-white">7-Day Performance</h3>
+            <div className="flex gap-1 liquid-glass rounded-button p-1">
+              {['7D', '14D', '30D'].map((r) => (
+                <button key={r} onClick={() => setTimeRange(r)} className={`px-3 py-1 rounded-tag text-xs font-medium transition-colors ${timeRange === r ? 'bg-purple-primary text-white' : 'text-white/40 hover:text-white/70'}`}>{r}</button>
+              ))}
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={200}>
+            <AreaChart data={chartData}>
+              <defs>
+                <linearGradient id="purpleGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#7b39fc" stopOpacity={0.12} />
+                  <stop offset="100%" stopColor="#7b39fc" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 11 }} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 11 }} />
+              <Tooltip content={<CustomTooltip />} />
+              <Area type="monotone" dataKey="replyRate" name="Reply Rate" stroke="#7b39fc" strokeWidth={2} fill="url(#purpleGrad)" />
+              <Line type="monotone" dataKey="demoClicks" name="Demo Clicks" stroke="rgba(164,132,215,0.7)" strokeWidth={1.5} dot={false} />
+              <Line type="monotone" dataKey="emailsSent" name="Emails Sent" stroke="rgba(255,255,255,0.25)" strokeWidth={1} dot={false} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
       {/* Row 5 — Top Leads */}
