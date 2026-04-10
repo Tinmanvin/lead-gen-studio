@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { settingsTemplates, geographySettings } from '@/data/mockData';
+import { settingsTemplates } from '@/data/mockData';
+import { useGeoSettings } from '@/hooks/useSettings';
 
 export default function SettingsScreen() {
   const [activeSection, setActiveSection] = useState('Templates');
   const [editingTemplate, setEditingTemplate] = useState<number | null>(null);
   const [templateCat, setTemplateCat] = useState('Indeed Hijacker');
+  const { geoAU, geoUK, toggle } = useGeoSettings();
 
   const sections = ['Templates', 'Geography', 'Email & Domains', 'API Keys', 'Brand Voice', 'LinkedIn Budget', 'Demo Hosting'];
 
@@ -53,26 +55,24 @@ export default function SettingsScreen() {
 
         {activeSection === 'Geography' && (
           <div className="space-y-4">
-            {geographySettings.map((g) => (
+            {[
+              { flag: '🇦🇺', country: 'Australia', key: 'geo_au_scrape' as const, enabled: geoAU },
+              { flag: '🇬🇧', country: 'United Kingdom', key: 'geo_uk_scrape' as const, enabled: geoUK },
+            ].map((g) => (
               <div key={g.country} className="liquid-glass rounded-card p-5 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <span className="text-2xl">{g.flag}</span>
                   <span className="font-semibold text-white">{g.country}</span>
                 </div>
-                <div className="flex items-center gap-6">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-white/50">Scrape</span>
-                    <div className={`w-10 h-5 rounded-full relative cursor-pointer transition-colors ${g.scrape ? 'bg-purple-primary' : 'bg-white/[0.1]'}`}>
-                      <div className={`w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all ${g.scrape ? 'right-0.5' : 'left-0.5'}`} />
-                    </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-white/50">Scrape</span>
+                  <div
+                    className={`w-10 h-5 rounded-full relative cursor-pointer transition-colors ${g.enabled ? 'bg-purple-primary' : 'bg-white/[0.1]'}`}
+                    onClick={() => toggle(g.key, !g.enabled)}
+                  >
+                    <div className={`w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all ${g.enabled ? 'right-0.5' : 'left-0.5'}`} />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-white/50">Outreach</span>
-                    <div className={`w-10 h-5 rounded-full relative cursor-pointer transition-colors ${g.outreach ? 'bg-purple-primary' : 'bg-white/[0.1]'}`}>
-                      <div className={`w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all ${g.outreach ? 'right-0.5' : 'left-0.5'}`} />
-                    </div>
-                    {!g.outreach && <span className="text-xs text-white/30 ml-1">DORMANT</span>}
-                  </div>
+                  {!g.enabled && <span className="text-xs text-white/30 ml-1">OFF</span>}
                 </div>
               </div>
             ))}

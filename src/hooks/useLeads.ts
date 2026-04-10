@@ -1,0 +1,111 @@
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+
+export interface Lead {
+  id: string;
+  company_name: string;
+  website?: string;
+  niche: string;
+  country: string;
+  city?: string;
+  dm_name?: string;
+  dm_email?: string;
+  dm_linkedin_url?: string;
+  dm_whatsapp?: string;
+  source: string;
+  rating?: number;
+  review_count?: number;
+  status: string;
+  created_at: string;
+}
+
+export interface LeadScore {
+  lead_id: string;
+  total_score: number;
+  touchpoint_tier: string;
+  demo_type: string;
+  signals: string[];
+  value_add_score: number;
+}
+
+export interface EnrichedLead extends Lead {
+  score?: LeadScore;
+}
+
+export function useLeads(limit = 50, status?: string) {
+  const [leads, setLeads] = useState<EnrichedLead[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchLeads() {
+      setLoading(true);
+      try {
+        let query = supabase
+          .from('leads')
+          .select('*, lead_scores(*)')
+          .order('created_at', { ascending: false })
+          .limit(limit);
+
+        if (status) query = query.eq('status', status);
+
+        const { data, error: err } = await query;
+        if (err) throw err;
+
+        const enriched = (data ?? []).map((row: any) => ({
+          ...row,
+          score: row.lead_scores?.[0] ?? undefined,
+        }));
+
+        setLeads(enriched);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchLeads();
+  }, [limit, status]);
+
+  return { leads, loading, error };
+}
+
+export function useLeadCounts() {
+  const [counts, setCounts] = useState({
+    total: 0,
+    new: 0,
+    enriched: 0,
+    scored: 0,
+    hot: 0,
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchCounts() {
+      try {
+        const [total, scored, hot] = await Promise.all([
+          supabase.from('leads').select('id', { count: 'exact', head: true }),
+          supabase.from('leads').select('id', { count: 'exact', head: true }).eq('status', 'scored'),
+          supabase.from('lead_scores').select('id', { count: 'exact', head: true }).gte('value_add_score', 2),
+        ]);
+
+        setCounts({
+          total: total.count ?? 0,
+          new: 0,
+          enriched: 0,
+          scored: scored.count ?? 0,
+          hot: hot.count ?? 0,
+        });
+      } catch (_) {
+        // silently fall back to zeros
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchCounts();
+  }, []);
+
+  return { counts, loading };
+}

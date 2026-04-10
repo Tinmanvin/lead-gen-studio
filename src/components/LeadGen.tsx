@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { massEmailLeads, hotLeads, geographySettings } from '@/data/mockData';
-import { RotateCcw } from 'lucide-react';
+import { geographySettings } from '@/data/mockData';
+import { useLeads, useLeadCounts } from '@/hooks/useLeads';
 
 const ScoreRing = ({ score, size = 32 }: { score: number; size?: number }) => {
   const r = (size - 5) / 2;
@@ -17,7 +17,6 @@ const ScoreRing = ({ score, size = 32 }: { score: number; size?: number }) => {
 
 const EngineRoom = () => (
   <div className="p-6 space-y-5">
-    {/* Geography */}
     <div className="liquid-glass rounded-card p-5">
       <h3 className="font-semibold text-[16px] text-white mb-4">Geography</h3>
       {geographySettings.map((g, i) => (
@@ -40,11 +39,9 @@ const EngineRoom = () => (
         </div>
       ))}
     </div>
-
-    {/* Data Sources */}
     <div className="liquid-glass rounded-card p-5">
       <h3 className="font-semibold text-[16px] text-white mb-4">Data Sources</h3>
-      {['Google Maps', 'Yellow Pages', 'LinkedIn', 'Indeed'].map((s, i, arr) => (
+      {['Google Maps AU/UK', 'AHPRA', 'HiPages', 'FCA Register', 'Yell', 'Checkatrade', 'Trustpilot', 'OpenCorporates'].map((s, i, arr) => (
         <div key={s} className="flex items-center justify-between py-2.5" style={{ borderBottom: i < arr.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
           <span className="text-sm text-white">{s}</span>
           <div className="w-10 h-5 rounded-full bg-purple-primary relative cursor-pointer">
@@ -53,37 +50,28 @@ const EngineRoom = () => (
         </div>
       ))}
     </div>
-
-    {/* Scrape Schedule */}
     <div className="liquid-glass rounded-card p-5">
       <h3 className="font-semibold text-[16px] text-white mb-4">Scrape Schedule</h3>
-      <p className="text-sm text-white/65">Daily at <span className="text-white font-semibold">6:00 AM AEST</span></p>
-    </div>
-
-    {/* Signal Filters */}
-    <div className="liquid-glass rounded-card p-5">
-      <h3 className="font-semibold text-[16px] text-white mb-4">Signal Filters</h3>
-      {['Hiring signals (Indeed/LinkedIn)', 'Outdated website detected', 'No mobile-responsive site', 'High local search volume'].map((s, i, arr) => (
-        <div key={s} className="flex items-center justify-between py-2.5" style={{ borderBottom: i < arr.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
-          <span className="text-sm text-white/80">{s}</span>
-          <div className="w-10 h-5 rounded-full bg-purple-primary relative cursor-pointer">
-            <div className="w-4 h-4 rounded-full bg-white absolute top-0.5 right-0.5 transition-all" />
-          </div>
-        </div>
-      ))}
+      <p className="text-sm text-white/65">Daily at <span className="text-white font-semibold">2:00 AM UTC</span> · Enrichment at <span className="text-white font-semibold">6:00 AM UTC</span></p>
     </div>
   </div>
 );
 
 export default function LeadGen({ showEngine, onToggleEngine }: { showEngine?: boolean; onToggleEngine?: () => void }) {
   const [activeTab, setActiveTab] = useState<'mass' | 'hot'>('mass');
-  const [expandedHot, setExpandedHot] = useState<number | null>(null);
+  const [expandedHot, setExpandedHot] = useState<string | null>(null);
+
+  const { leads: allLeads, loading: leadsLoading } = useLeads(100);
+  const { counts } = useLeadCounts();
+
+  const massLeads = allLeads.filter(l => !l.score || l.score.value_add_score < 2);
+  const hotLeads = allLeads.filter(l => l.score && l.score.value_add_score >= 2);
 
   const summaryStats = [
-    { label: 'Plain Email', value: 156 },
-    { label: 'Widget Demos', value: 89 },
-    { label: 'Redesigns', value: 42 },
-    { label: 'New Sites', value: 25 },
+    { label: 'Total Queue', value: leadsLoading ? '—' : counts.total.toLocaleString() },
+    { label: 'Hot Leads', value: leadsLoading ? '—' : counts.hot.toLocaleString() },
+    { label: 'Scored', value: leadsLoading ? '—' : counts.scored.toLocaleString() },
+    { label: 'With Email', value: leadsLoading ? '—' : allLeads.filter(l => l.dm_email).length.toString() },
   ];
 
   return (
@@ -99,14 +87,13 @@ export default function LeadGen({ showEngine, onToggleEngine }: { showEngine?: b
         {/* Front — Queue */}
         {!showEngine && (
           <div className="p-6 space-y-6 overflow-y-auto h-full" style={{ backfaceVisibility: 'hidden' }}>
-            {/* Sub-tabs */}
             <div className="flex gap-6 border-b border-white/[0.06]">
               <button onClick={() => setActiveTab('mass')} className={`pb-3 text-sm font-semibold transition-colors relative ${activeTab === 'mass' ? 'text-purple-primary' : 'text-white/40 hover:text-white/70'}`}>
-                Mass Email (312)
+                Mass Email ({leadsLoading ? '…' : massLeads.length})
                 {activeTab === 'mass' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-primary" />}
               </button>
               <button onClick={() => setActiveTab('hot')} className={`pb-3 text-sm font-semibold transition-colors relative ${activeTab === 'hot' ? 'text-purple-primary' : 'text-white/40 hover:text-white/70'}`}>
-                Hot Leads (27)
+                Hot Leads ({leadsLoading ? '…' : hotLeads.length})
                 {activeTab === 'hot' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-primary" />}
               </button>
             </div>
@@ -122,33 +109,41 @@ export default function LeadGen({ showEngine, onToggleEngine }: { showEngine?: b
                   ))}
                 </div>
 
-                <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
-                  {massEmailLeads.map((lead, i) => (
-                    <div key={i} className={`liquid-glass rounded-card p-4 hover:-translate-y-0.5 transition-transform cursor-pointer ${lead.tier === 'hot' ? 'accent-hot' : lead.tier === 'standard' ? 'accent-standard' : 'accent-cold'}`}>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="font-semibold text-sm text-white">{lead.company}</h4>
-                          <p className="text-sm text-white/65 mt-0.5">{lead.dm}</p>
+                {leadsLoading ? (
+                  <div className="text-center py-10 text-white/30 text-sm">Loading leads…</div>
+                ) : massLeads.length === 0 ? (
+                  <div className="liquid-glass rounded-card p-8 text-center">
+                    <p className="text-white/30 text-sm">No leads yet — deploy the scraper to start filling the queue.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
+                    {massLeads.slice(0, 12).map((lead) => (
+                      <div key={lead.id} className="liquid-glass rounded-card p-4 hover:-translate-y-0.5 transition-transform cursor-pointer accent-standard">
+                        <div className="flex justify-between items-start">
+                          <div className="min-w-0 flex-1 mr-2">
+                            <h4 className="font-semibold text-sm text-white truncate">{lead.company_name}</h4>
+                            <p className="text-sm text-white/65 mt-0.5 truncate">{lead.dm_name ?? lead.city ?? '—'}</p>
+                          </div>
+                          <ScoreRing score={Math.min(lead.score?.total_score ?? 0, 100)} />
                         </div>
-                        <ScoreRing score={lead.score} />
+                        <div className="flex items-center gap-2 mt-3">
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-tag liquid-glass text-xs text-white/80">
+                            <span className="w-1.5 h-1.5 rounded-full bg-purple-primary/60" />
+                            {lead.niche}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {lead.score?.demo_type && (
+                            <span className="text-xs px-2 py-0.5 rounded-tag bg-purple-primary/10 text-purple-primary/80">{lead.score.demo_type}</span>
+                          )}
+                          {lead.dm_email && (
+                            <span className="text-xs px-2 py-0.5 rounded-tag bg-purple-primary/20 text-purple-primary font-medium">Email Found</span>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 mt-3">
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-tag liquid-glass text-xs text-white/80">
-                          <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: lead.nicheColor }} />
-                          {lead.niche}
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5 mt-2">
-                        {lead.services.map((s) => (
-                          <span key={s} className="text-xs px-2 py-0.5 rounded-tag bg-purple-primary/10 text-purple-primary/80">{s}</span>
-                        ))}
-                      </div>
-                      {lead.hasDemoReady && (
-                        <span className="inline-block mt-3 text-xs px-2 py-0.5 rounded-tag bg-purple-primary/20 text-purple-primary font-medium">Demo Ready</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
 
                 <button className="w-full py-3.5 rounded-button bg-purple-primary text-white font-semibold text-sm hover:bg-purple-primary/90 transition-colors">
                   Approve Batch → Send via Instantly
@@ -156,33 +151,42 @@ export default function LeadGen({ showEngine, onToggleEngine }: { showEngine?: b
               </>
             ) : (
               <div className="space-y-4">
-                {hotLeads.map((lead, i) => (
-                  <div key={i} className="liquid-glass rounded-card p-5 accent-hot cursor-pointer hover:-translate-y-0.5 transition-transform" onClick={() => setExpandedHot(expandedHot === i ? null : i)}>
+                {leadsLoading ? (
+                  <div className="text-center py-10 text-white/30 text-sm">Loading hot leads…</div>
+                ) : hotLeads.length === 0 ? (
+                  <div className="liquid-glass rounded-card p-8 text-center">
+                    <p className="text-white/30 text-sm">No hot leads yet — enrichment + scoring needs to run first.</p>
+                  </div>
+                ) : hotLeads.map((lead) => (
+                  <div key={lead.id} className="liquid-glass rounded-card p-5 accent-hot cursor-pointer hover:-translate-y-0.5 transition-transform" onClick={() => setExpandedHot(expandedHot === lead.id ? null : lead.id)}>
                     <div className="flex justify-between items-start">
                       <div>
-                        <h4 className="font-semibold text-white">{lead.company}</h4>
-                        <p className="text-sm text-white/65 mt-0.5">{lead.dm}</p>
+                        <h4 className="font-semibold text-white">{lead.company_name}</h4>
+                        <p className="text-sm text-white/65 mt-0.5">{lead.dm_name ?? '—'}</p>
                         <div className="flex items-center gap-2 mt-2">
                           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-tag liquid-glass text-xs text-white/80">
-                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: lead.nicheColor }} />
+                            <span className="w-1.5 h-1.5 rounded-full bg-purple-primary/60" />
                             {lead.niche}
                           </span>
-                          {lead.services.map((s) => (
-                            <span key={s} className="text-xs px-2 py-0.5 rounded-tag bg-purple-primary/10 text-purple-primary/80">{s}</span>
-                          ))}
+                          {lead.score?.demo_type && (
+                            <span className="text-xs px-2 py-0.5 rounded-tag bg-purple-primary/10 text-purple-primary/80">{lead.score.demo_type}</span>
+                          )}
                         </div>
                       </div>
-                      <ScoreRing score={lead.score} size={40} />
+                      <ScoreRing score={Math.min(lead.score?.total_score ?? 0, 100)} size={40} />
                     </div>
-                    {expandedHot === i && (
+                    {expandedHot === lead.id && (
                       <div className="mt-4 pt-4 border-t border-white/[0.06]">
-                        <p className="text-xs uppercase tracking-wider text-white/35 mb-3">Multi-channel outreach</p>
+                        <p className="text-xs uppercase tracking-wider text-white/35 mb-3">Contact channels</p>
                         <div className="flex gap-2">
-                          {Object.entries(lead.channels).map(([ch, available]) => (
-                            <button key={ch} className={`px-3 py-1.5 rounded-button text-xs font-medium transition-colors ${available ? 'bg-purple-primary/20 text-purple-primary hover:bg-purple-primary/30' : 'bg-white/[0.04] text-white/20 cursor-not-allowed'}`}>
-                              {ch.charAt(0).toUpperCase() + ch.slice(1)} {available ? '✓' : '✗'}
-                            </button>
-                          ))}
+                          {(['email', 'linkedin', 'whatsapp'] as const).map((ch) => {
+                            const available = ch === 'email' ? !!lead.dm_email : ch === 'linkedin' ? !!lead.dm_linkedin_url : !!lead.dm_whatsapp;
+                            return (
+                              <button key={ch} className={`px-3 py-1.5 rounded-button text-xs font-medium transition-colors ${available ? 'bg-purple-primary/20 text-purple-primary hover:bg-purple-primary/30' : 'bg-white/[0.04] text-white/20 cursor-not-allowed'}`}>
+                                {ch.charAt(0).toUpperCase() + ch.slice(1)} {available ? '✓' : '✗'}
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
                     )}

@@ -1,6 +1,23 @@
 import { useState } from 'react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
-import { dashboardStats, briefingItems, performanceBlocks, chartData, topLeads } from '@/data/mockData';
+import { Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
+import { briefingItems, chartData } from '@/data/mockData';
+import { useLeads, useLeadCounts } from '@/hooks/useLeads';
+
+const NICHE_COLORS: Record<string, string> = {
+  dental: '#22c55e', healthcare: '#22c55e', medical: '#22c55e',
+  legal: '#8b5cf6', law: '#8b5cf6',
+  finance: '#3b82f6', mortgage: '#3b82f6',
+  trades: '#f59e0b', plumbing: '#f59e0b', electrical: '#f59e0b',
+  beauty: '#ec4899', fitness: '#f59e0b',
+};
+
+function nicheColor(niche: string) {
+  const key = niche.toLowerCase();
+  for (const [k, v] of Object.entries(NICHE_COLORS)) {
+    if (key.includes(k)) return v;
+  }
+  return '#7b39fc';
+}
 
 const ScoreRing = ({ score, size = 36 }: { score: number; size?: number }) => {
   const r = (size - 6) / 2;
@@ -29,12 +46,22 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export default function Dashboard({ onNavigate }: { onNavigate?: (screen: string) => void }) {
   const [timeRange, setTimeRange] = useState('7D');
+  const { counts, loading: countsLoading } = useLeadCounts();
+  const { leads: topLeads, loading: leadsLoading } = useLeads(5, 'scored');
+
+  const stats = [
+    { label: 'Total Leads', value: countsLoading ? '—' : counts.total.toLocaleString(), trend: 'Live' },
+    { label: 'Scored', value: countsLoading ? '—' : counts.scored.toLocaleString(), trend: 'Live' },
+    { label: 'Hot Leads', value: countsLoading ? '—' : counts.hot.toLocaleString(), trend: 'score ≥2' },
+    { label: 'Reply Rate', value: '—', trend: 'soon' },
+    { label: 'Pipeline', value: '—', trend: 'soon' },
+  ];
 
   return (
     <div className="p-6 space-y-6 overflow-y-auto h-full">
       {/* Row 1 — Stats */}
       <div className="grid grid-cols-5 gap-4">
-        {dashboardStats.map((stat) => (
+        {stats.map((stat) => (
           <div key={stat.label} className="liquid-glass rounded-card p-5 accent-hot">
             <p className="font-bold text-[clamp(1.75rem,2.5vw,2.5rem)] leading-none tracking-tight text-white">{stat.value}</p>
             <p className="text-xs font-medium uppercase tracking-wider text-white/35 mt-2">{stat.label}</p>
@@ -45,7 +72,6 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (screen: string
 
       {/* Row 2 — Briefing (1/3) + Chart (2/3) */}
       <div className="grid grid-cols-3 gap-4">
-        {/* Today's Briefing — compact */}
         <div className="liquid-glass rounded-card p-5 col-span-1">
           <h3 className="font-semibold text-[16px] text-white mb-4">Today's Briefing</h3>
           <div className="space-y-1">
@@ -62,7 +88,6 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (screen: string
           </div>
         </div>
 
-        {/* 7-Day Performance Chart */}
         <div className="liquid-glass rounded-card p-5 col-span-2">
           <div className="flex items-center justify-between mb-6">
             <h3 className="font-semibold text-[16px] text-white">7-Day Performance</h3>
@@ -91,11 +116,11 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (screen: string
         </div>
       </div>
 
-      {/* Row 5 — Top Leads */}
+      {/* Top Leads — real data */}
       <div className="liquid-glass rounded-card p-5">
         <div className="flex items-center gap-3 mb-4">
-          <h3 className="font-semibold text-[16px] text-white">Top Performing Leads</h3>
-          <span className="text-xs font-medium px-2 py-0.5 rounded-tag bg-white/[0.06] text-white/50">This Week</span>
+          <h3 className="font-semibold text-[16px] text-white">Top Scored Leads</h3>
+          <span className="text-xs font-medium px-2 py-0.5 rounded-tag bg-white/[0.06] text-white/50">Live</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -103,36 +128,44 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (screen: string
               <tr className="text-xs uppercase tracking-wider text-white/35 border-b border-white/[0.06]">
                 <th className="text-left py-3 font-medium">Company</th>
                 <th className="text-left py-3 font-medium">Niche</th>
-                <th className="text-left py-3 font-medium">Services Flagged</th>
+                <th className="text-left py-3 font-medium">Demo Type</th>
                 <th className="text-center py-3 font-medium">Score</th>
                 <th className="text-right py-3 font-medium">Status</th>
               </tr>
             </thead>
             <tbody>
-              {topLeads.map((lead) => (
-                <tr key={lead.company} className="border-b border-white/[0.04] hover:bg-white/[0.04] cursor-pointer transition-colors">
+              {leadsLoading ? (
+                <tr><td colSpan={5} className="py-6 text-center text-white/30 text-sm">Loading leads…</td></tr>
+              ) : topLeads.length === 0 ? (
+                <tr><td colSpan={5} className="py-6 text-center text-white/30 text-sm">No scored leads yet — run the scraper first.</td></tr>
+              ) : topLeads.map((lead) => (
+                <tr key={lead.id} className="border-b border-white/[0.04] hover:bg-white/[0.04] cursor-pointer transition-colors">
                   <td className="py-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-purple-primary/30 flex items-center justify-center text-xs font-semibold text-purple-primary">{lead.initials}</div>
-                      <span className="font-semibold text-sm text-white">{lead.company}</span>
+                      <div className="w-8 h-8 rounded-full bg-purple-primary/30 flex items-center justify-center text-xs font-semibold text-purple-primary">
+                        {lead.company_name.slice(0, 2).toUpperCase()}
+                      </div>
+                      <span className="font-semibold text-sm text-white">{lead.company_name}</span>
                     </div>
                   </td>
                   <td className="py-3">
                     <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-tag liquid-glass text-xs text-white/80">
-                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: lead.nicheColor }} />
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: nicheColor(lead.niche) }} />
                       {lead.niche}
                     </span>
                   </td>
                   <td className="py-3">
-                    <div className="flex gap-1.5">
-                      {lead.services.map((s) => (
-                        <span key={s} className="text-xs px-2 py-0.5 rounded-tag bg-purple-primary/10 text-purple-primary/80">{s}</span>
-                      ))}
-                    </div>
+                    <span className="text-xs px-2 py-0.5 rounded-tag bg-purple-primary/10 text-purple-primary/80">
+                      {lead.score?.demo_type ?? '—'}
+                    </span>
                   </td>
-                  <td className="py-3 text-center"><ScoreRing score={lead.score} /></td>
+                  <td className="py-3 text-center">
+                    <ScoreRing score={Math.min(lead.score?.total_score ?? 0, 100)} />
+                  </td>
                   <td className="py-3 text-right">
-                    <span className={`text-xs font-medium px-2.5 py-1 rounded-tag ${lead.status === 'Booked' ? 'bg-purple-primary/30 text-purple-primary' : lead.status === 'Replied' ? 'bg-purple-primary/15 text-purple-primary/80' : 'bg-white/[0.06] text-white/50'}`}>{lead.status}</span>
+                    <span className={`text-xs font-medium px-2.5 py-1 rounded-tag ${lead.status === 'booked' ? 'bg-purple-primary/30 text-purple-primary' : lead.status === 'replied' ? 'bg-purple-primary/15 text-purple-primary/80' : 'bg-white/[0.06] text-white/50'}`}>
+                      {lead.status}
+                    </span>
                   </td>
                 </tr>
               ))}
