@@ -66,6 +66,52 @@ export function useLeads(limit = 50, status?: string) {
     }
 
     fetchLeads();
+
+    // Real-time: fires when enrichment transitions a lead to 'scored' or 'enriched'
+    // Only subscribe if we're watching a status that enrichment writes to
+    if (!status || status === 'scored' || status === 'enriched') {
+      const filter = status ? `status=eq.${status}` : undefined;
+      const channel = supabase
+        .channel(`leads_live_${status ?? 'all'}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'leads',
+            ...(filter ? { filter } : {}),
+          },
+          async (payload) => {
+            const updated = payload.new as Lead;
+            // Only surface if this update matches our status filter
+            if (status && updated.status !== status) return;
+
+            // Fetch the full lead with score so we have lead_scores joined
+            const { data } = await supabase
+              .from('leads')
+              .select('*, lead_scores(*)')
+              .eq('id', updated.id)
+              .single();
+
+            if (!data) return;
+            const enrichedLead: EnrichedLead = { ...data, score: data.lead_scores?.[0] ?? undefined };
+
+            setLeads((prev) => {
+              const exists = prev.find((l) => l.id === enrichedLead.id);
+              if (exists) {
+                return prev.map((l) => (l.id === enrichedLead.id ? enrichedLead : l));
+              }
+              // New arrival — prepend and cap at limit
+              return [enrichedLead, ...prev].slice(0, limit);
+            });
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
   }, [limit, status]);
 
   return { leads, loading, error };

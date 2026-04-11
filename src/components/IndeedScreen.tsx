@@ -91,7 +91,7 @@ export default function IndeedScreen() {
           </span>
           <div className="flex items-center gap-3">
             <span className="text-xs text-white/35">
-              {loading ? '' : `${stats.scanned} scanned · ${stats.queued} queued`}
+              {loading ? '' : `${stats.processing} processing · ${stats.ready} ready`}
             </span>
             <RunBtn
               label="Run Hijacker"
