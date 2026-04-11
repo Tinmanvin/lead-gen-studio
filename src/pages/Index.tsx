@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { LayoutDashboard, Zap, Mail, Linkedin, Search, Hexagon, Settings, RotateCcw } from 'lucide-react';
+import { LayoutDashboard, Zap, Mail, Linkedin, Search, Hexagon, Settings, RotateCcw, SlidersHorizontal } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
+import { useTriggerRun } from '@/hooks/useTriggerRun';
 import LeadGen from '@/components/LeadGen';
 import Outreach from '@/components/Outreach';
 import LinkedInScreen from '@/components/LinkedInScreen';
@@ -52,8 +53,10 @@ export default function Index() {
   const [isHovering, setIsHovering] = useState(false);
   const [activeScreen, setActiveScreen] = useState<Screen>('dashboard');
   const [navExpanded, setNavExpanded] = useState(false);
+  const { trigger, getState } = useTriggerRun();
   const [heroVisible, setHeroVisible] = useState(true);
   const [showEngine, setShowEngine] = useState(false);
+  const [showIndeedConfig, setShowIndeedConfig] = useState(false);
 
   const handleExpandApp = () => {
     setAppState('app');
@@ -165,7 +168,7 @@ export default function Index() {
                 return (
                   <button
                     key={item.key}
-                    onClick={() => { setActiveScreen(item.key); setShowEngine(false); }}
+                    onClick={() => { setActiveScreen(item.key); setShowEngine(false); setShowIndeedConfig(false); }}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${isActive ? 'bg-purple-primary/20' : 'hover:bg-purple-primary/[0.15]'}`}
                     style={isActive ? { borderLeft: '2px solid #7b39fc' } : undefined}
                   >
@@ -202,8 +205,32 @@ export default function Index() {
                   <span className="text-xs px-2.5 py-1 rounded-tag bg-white/[0.06] text-white/50">{screenExtras[activeScreen]}</span>
                 )}
                 {activeScreen === 'leadgen' && (
-                  <button onClick={() => setShowEngine(!showEngine)} className="text-xs px-3 py-1.5 rounded-button bg-white/[0.06] text-white/50 hover:text-white/70 transition-colors flex items-center gap-1.5">
-                    <RotateCcw size={12} /> {showEngine ? 'Back to Queue' : 'Engine Room'}
+                  <>
+                    {!showEngine && (() => {
+                      const s = getState('main-full-run');
+                      return (
+                        <button
+                          onClick={() => trigger('main-full-run')}
+                          disabled={s === 'loading'}
+                          className={`text-xs px-3 py-1.5 rounded-button transition-all duration-200 flex items-center gap-1.5 font-semibold ${s === 'idle' ? 'bg-purple-primary hover:bg-purple-primary/90 text-white' : s === 'loading' ? 'bg-purple-primary/40 text-white/60 cursor-not-allowed' : s === 'success' ? 'bg-green-500/80 text-white' : 'bg-red-500/80 text-white'}`}
+                        >
+                          {s === 'loading' && <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>}
+                          {s === 'success' && <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>}
+                          {{ idle: 'Run Scraper', loading: 'Triggering…', success: 'Triggered ✓', error: 'Failed' }[s]}
+                        </button>
+                      );
+                    })()}
+                    <button onClick={() => setShowEngine(!showEngine)} className="text-xs px-3 py-1.5 rounded-button bg-white/[0.06] text-white/50 hover:text-white/70 transition-colors flex items-center gap-1.5">
+                      <RotateCcw size={12} /> {showEngine ? 'Back to Queue' : 'Engine Room'}
+                    </button>
+                  </>
+                )}
+                {activeScreen === 'indeed' && (
+                  <button
+                    onClick={() => setShowIndeedConfig(!showIndeedConfig)}
+                    className={`text-xs px-3 py-1.5 rounded-button transition-colors flex items-center gap-1.5 ${showIndeedConfig ? 'bg-purple-primary/20 text-purple-primary' : 'bg-white/[0.06] text-white/50 hover:text-white/70'}`}
+                  >
+                    <SlidersHorizontal size={12} /> {showIndeedConfig ? 'Back to Jobs' : 'Configure'}
                   </button>
                 )}
                 <span className="text-sm text-white/65">{today}</span>
@@ -216,7 +243,7 @@ export default function Index() {
               {activeScreen === 'leadgen' && <LeadGen showEngine={showEngine} onToggleEngine={() => setShowEngine(!showEngine)} />}
               {activeScreen === 'outreach' && <Outreach />}
               {activeScreen === 'linkedin' && <LinkedInScreen />}
-              {activeScreen === 'indeed' && <IndeedScreen />}
+              {activeScreen === 'indeed' && <IndeedScreen showConfig={showIndeedConfig} onToggleConfig={() => setShowIndeedConfig(!showIndeedConfig)} />}
               {activeScreen === 'upwork' && <UpworkScreen />}
               {activeScreen === 'settings' && <SettingsScreen />}
             </div>
