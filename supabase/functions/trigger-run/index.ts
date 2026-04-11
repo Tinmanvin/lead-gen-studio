@@ -9,6 +9,7 @@ const corsHeaders = {
 const TASK_MAP: Record<string, string[]> = {
   "main-full-run":    ["daily-scrape-orchestrator", "enrich-new-leads"],
   "indeed-full-run":  ["indeed-hijacker-scrape-orchestrator", "indeed-hijacker-enrich-orchestrator"],
+  "indeed-send":      ["indeed-send-orchestrator"],
   "main-scrape":      ["daily-scrape-orchestrator"],
   "main-enrich":      ["enrich-new-leads"],
   "indeed-scrape":    ["indeed-hijacker-scrape-orchestrator"],
