@@ -109,3 +109,49 @@ export function useLeadCounts() {
 
   return { counts, loading };
 }
+
+export interface DailyLeadCount {
+  day: string;
+  leads: number;
+}
+
+export function useLeadsPerDay(days = 7) {
+  const [data, setData] = useState<DailyLeadCount[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchDaily() {
+      try {
+        const since = new Date();
+        since.setDate(since.getDate() - days);
+        const { data: rows } = await supabase
+          .from('leads')
+          .select('created_at')
+          .gte('created_at', since.toISOString());
+
+        const counts: Record<string, number> = {};
+        for (let i = days - 1; i >= 0; i--) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          const key = d.toLocaleDateString('en-US', { weekday: 'short' });
+          counts[key] = 0;
+        }
+
+        (rows ?? []).forEach((row: { created_at: string }) => {
+          const key = new Date(row.created_at).toLocaleDateString('en-US', { weekday: 'short' });
+          if (key in counts) counts[key]++;
+        });
+
+        setData(Object.entries(counts).map(([day, leads]) => ({ day, leads })));
+      } catch (_) {
+        setData([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchDaily();
+  }, [days]);
+
+  return { data, loading };
+}

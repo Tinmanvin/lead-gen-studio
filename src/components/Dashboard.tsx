@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
-import { briefingItems, chartData } from '@/data/mockData';
-import { useLeads, useLeadCounts } from '@/hooks/useLeads';
+import { Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart, Bar, BarChart } from 'recharts';
+import { useLeads, useLeadCounts, useLeadsPerDay } from '@/hooks/useLeads';
 
 const NICHE_COLORS: Record<string, string> = {
   dental: '#22c55e', healthcare: '#22c55e', medical: '#22c55e',
@@ -48,6 +47,22 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (screen: string
   const [timeRange, setTimeRange] = useState('7D');
   const { counts, loading: countsLoading } = useLeadCounts();
   const { leads: topLeads, loading: leadsLoading } = useLeads(5, 'scored');
+  const days = timeRange === '7D' ? 7 : timeRange === '14D' ? 14 : 30;
+  const { data: leadsPerDay, loading: chartLoading } = useLeadsPerDay(days);
+
+  const briefingItems = [
+    counts.hot > 0
+      ? { color: '#ef4444', text: `${counts.hot} hot leads ready for manual outreach`, screen: 'outreach', dotOpacity: 0.7 }
+      : { color: 'rgba(255,255,255,0.2)', text: 'No hot leads yet — scraper needs to run', screen: 'leadgen', dotOpacity: 1 },
+    counts.scored > 0
+      ? { color: '#f59e0b', text: `${counts.scored} scored leads in outreach queue`, screen: 'outreach', dotOpacity: 0.7 }
+      : { color: 'rgba(255,255,255,0.2)', text: 'No scored leads yet — enrichment pending', screen: 'leadgen', dotOpacity: 1 },
+    counts.total > 0
+      ? { color: '#7b39fc', text: `${counts.total.toLocaleString()} total leads in system`, screen: 'leadgen', dotOpacity: 0.7 }
+      : { color: 'rgba(255,255,255,0.2)', text: 'No leads scraped yet — deploy scraper to begin', screen: 'leadgen', dotOpacity: 1 },
+    { color: 'rgba(255,255,255,0.2)', text: 'LinkedIn Director — scraper not built yet', screen: 'linkedin', dotOpacity: 1 },
+    { color: 'rgba(255,255,255,0.2)', text: 'Indeed Hijacker — scraper not built yet', screen: 'indeed', dotOpacity: 1 },
+  ];
 
   const stats = [
     { label: 'Total Leads', value: countsLoading ? '—' : counts.total.toLocaleString(), trend: 'Live' },
@@ -90,29 +105,31 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (screen: string
 
         <div className="liquid-glass rounded-card p-5 col-span-2">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="font-semibold text-[16px] text-white">7-Day Performance</h3>
+            <h3 className="font-semibold text-[16px] text-white">Leads Scraped</h3>
             <div className="flex gap-1 liquid-glass rounded-button p-1">
               {['7D', '14D', '30D'].map((r) => (
                 <button key={r} onClick={() => setTimeRange(r)} className={`px-3 py-1 rounded-tag text-xs font-medium transition-colors ${timeRange === r ? 'bg-purple-primary text-white' : 'text-white/40 hover:text-white/70'}`}>{r}</button>
               ))}
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={chartData}>
-              <defs>
-                <linearGradient id="purpleGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#7b39fc" stopOpacity={0.12} />
-                  <stop offset="100%" stopColor="#7b39fc" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 11 }} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 11 }} />
-              <Tooltip content={<CustomTooltip />} />
-              <Area type="monotone" dataKey="replyRate" name="Reply Rate" stroke="#7b39fc" strokeWidth={2} fill="url(#purpleGrad)" />
-              <Line type="monotone" dataKey="demoClicks" name="Demo Clicks" stroke="rgba(164,132,215,0.7)" strokeWidth={1.5} dot={false} />
-              <Line type="monotone" dataKey="emailsSent" name="Emails Sent" stroke="rgba(255,255,255,0.25)" strokeWidth={1} dot={false} />
-            </AreaChart>
-          </ResponsiveContainer>
+          {chartLoading ? (
+            <div className="h-[200px] flex items-center justify-center text-white/30 text-sm">Loading…</div>
+          ) : (
+            <ResponsiveContainer width="100%" height={200}>
+              <AreaChart data={leadsPerDay}>
+                <defs>
+                  <linearGradient id="purpleGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#7b39fc" stopOpacity={0.2} />
+                    <stop offset="100%" stopColor="#7b39fc" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 11 }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 11 }} />
+                <Tooltip content={<CustomTooltip />} />
+                <Area type="monotone" dataKey="leads" name="Leads" stroke="#7b39fc" strokeWidth={2} fill="url(#purpleGrad)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
 
