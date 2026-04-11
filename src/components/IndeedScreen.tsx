@@ -93,18 +93,11 @@ export default function IndeedScreen() {
             <span className="text-xs text-white/35">
               {loading ? '' : `${stats.scanned} scanned · ${stats.queued} queued`}
             </span>
-            <div className="flex items-center gap-2">
-              <RunBtn
-                label="Run Scraper"
-                state={getState('indeed-scrape')}
-                onClick={() => trigger('indeed-scrape')}
-              />
-              <RunBtn
-                label="Run Enrichment"
-                state={getState('indeed-enrich')}
-                onClick={() => trigger('indeed-enrich')}
-              />
-            </div>
+            <RunBtn
+              label="Run Hijacker"
+              state={getState('indeed-full-run')}
+              onClick={() => trigger('indeed-full-run')}
+            />
           </div>
         </div>
         <div className="w-full h-2.5 rounded-full bg-white/[0.06] overflow-hidden">

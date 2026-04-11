@@ -1,17 +1,26 @@
 import { useState } from 'react';
 import { useLeads } from '@/hooks/useLeads';
+import { useTriggerRun } from '@/hooks/useTriggerRun';
 
 export default function Outreach() {
   const [activeTab, setActiveTab] = useState<'mass' | 'hot'>('mass');
+  const { trigger, getState } = useTriggerRun();
 
-  // Mass email queue: all scored leads
   const { leads: massLeads, loading: massLoading } = useLeads(50, 'scored');
-  // Hot leads: enriched leads (scored with value_add_score >= 2)
   const { leads: hotLeads, loading: hotLoading } = useLeads(30, 'enriched');
 
   const massCount = massLeads.length;
   const hotCount = hotLeads.filter(l => (l.score?.value_add_score ?? 0) >= 2).length;
   const topHotLeads = hotLeads.filter(l => (l.score?.value_add_score ?? 0) >= 2);
+
+  const runState = getState('main-full-run');
+  const runLabel = { idle: 'Run Now', loading: 'Triggering…', success: 'Triggered ✓', error: 'Failed — retry' }[runState];
+  const runStyle = {
+    idle:    'bg-purple-primary hover:bg-purple-primary/90 text-white',
+    loading: 'bg-purple-primary/40 text-white/60 cursor-not-allowed',
+    success: 'bg-green-500/80 text-white',
+    error:   'bg-red-500/80 text-white',
+  }[runState];
 
   const batchStats = [
     { label: 'Total in Queue', value: massLoading ? '—' : massCount.toString() },
@@ -22,20 +31,43 @@ export default function Outreach() {
 
   return (
     <div className="p-6 space-y-6 overflow-y-auto h-full">
-      <div className="flex gap-6 border-b border-white/[0.06]">
+      <div className="flex items-end justify-between border-b border-white/[0.06]">
+        <div className="flex gap-6">
+          <button
+            onClick={() => setActiveTab('mass')}
+            className={`pb-3 text-sm font-semibold transition-colors relative ${activeTab === 'mass' ? 'text-purple-primary' : 'text-white/40 hover:text-white/70'}`}
+          >
+            Mass Email ({massLoading ? '…' : massCount})
+            {activeTab === 'mass' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-primary" />}
+          </button>
+          <button
+            onClick={() => setActiveTab('hot')}
+            className={`pb-3 text-sm font-semibold transition-colors relative ${activeTab === 'hot' ? 'text-purple-primary' : 'text-white/40 hover:text-white/70'}`}
+          >
+            Hot Leads ({hotLoading ? '…' : hotCount})
+            {activeTab === 'hot' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-primary" />}
+          </button>
+        </div>
         <button
-          onClick={() => setActiveTab('mass')}
-          className={`pb-3 text-sm font-semibold transition-colors relative ${activeTab === 'mass' ? 'text-purple-primary' : 'text-white/40 hover:text-white/70'}`}
+          onClick={() => trigger('main-full-run')}
+          disabled={runState === 'loading'}
+          className={`mb-2.5 px-4 py-1.5 rounded-button text-xs font-semibold transition-all duration-200 flex items-center gap-1.5 ${runStyle}`}
         >
-          Mass Email ({massLoading ? '…' : massCount})
-          {activeTab === 'mass' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-primary" />}
-        </button>
-        <button
-          onClick={() => setActiveTab('hot')}
-          className={`pb-3 text-sm font-semibold transition-colors relative ${activeTab === 'hot' ? 'text-purple-primary' : 'text-white/40 hover:text-white/70'}`}
-        >
-          Hot Leads ({hotLoading ? '…' : hotCount})
-          {activeTab === 'hot' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-primary" />}
+          {runState === 'loading' ? (
+            <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+          ) : runState === 'success' ? (
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+            </svg>
+          ) : (
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+            </svg>
+          )}
+          {runLabel}
         </button>
       </div>
 

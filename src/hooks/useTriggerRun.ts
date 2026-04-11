@@ -2,6 +2,8 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 
 export type TriggerTask =
+  | 'main-full-run'
+  | 'indeed-full-run'
   | 'main-scrape'
   | 'main-enrich'
   | 'indeed-scrape'
