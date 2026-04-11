@@ -32,7 +32,6 @@ const screenTitles: Record<Screen, string> = {
 
 const screenExtras: Record<string, string> = {
   upwork: '47 found globally',
-  indeed: '34 auto-fired today / 50 cap',
 };
 
 const LightningBolt = ({ size = 28 }: { size?: number }) => (
@@ -243,7 +242,7 @@ export default function Index() {
               {activeScreen === 'leadgen' && <LeadGen showEngine={showEngine} onToggleEngine={() => setShowEngine(!showEngine)} />}
               {activeScreen === 'outreach' && <Outreach />}
               {activeScreen === 'linkedin' && <LinkedInScreen />}
-              {activeScreen === 'indeed' && <IndeedScreen showConfig={showIndeedConfig} onToggleConfig={() => setShowIndeedConfig(!showIndeedConfig)} />}
+              {activeScreen === 'indeed' && <IndeedScreen showConfig={showIndeedConfig} />}
               {activeScreen === 'upwork' && <UpworkScreen />}
               {activeScreen === 'settings' && <SettingsScreen />}
             </div>

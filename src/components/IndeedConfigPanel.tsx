@@ -110,7 +110,7 @@ function TemplatesTab() {
                     onClick={async () => {
                       const patch = drafts[t.id];
                       if (!patch || Object.keys(patch).length === 0) return;
-                      const ok = await save(t.id, patch);
+                      const ok = await save(t.id, t.category, patch);
                       if (ok) {
                         setDrafts((prev) => { const n = { ...prev }; delete n[t.id]; return n; });
                         setExpanded(null);
@@ -236,7 +236,7 @@ function SettingsTab() {
             <button
               disabled={!newEmail || !newLabel}
               onClick={async () => {
-                await addAccount(newEmail, newLabel, newEmail.includes('@gmail') ? 'gmail' : 'domain');
+                await addAccount(newEmail, newLabel, newEmail.toLowerCase().endsWith('@gmail.com') ? 'gmail' : 'domain');
                 setNewEmail('');
                 setNewLabel('');
                 setAddingAccount(false);

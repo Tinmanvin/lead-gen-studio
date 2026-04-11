@@ -74,7 +74,7 @@ function RunBtn({
   );
 }
 
-export default function IndeedScreen({ showConfig, onToggleConfig }: { showConfig?: boolean; onToggleConfig?: () => void }) {
+export default function IndeedScreen({ showConfig }: { showConfig?: boolean }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const { jobs, stats, loading } = useIndeedJobs(50);
   const { trigger, getState } = useTriggerRun();
@@ -92,9 +92,8 @@ export default function IndeedScreen({ showConfig, onToggleConfig }: { showConfi
           transition: 'transform 500ms ease-in-out',
         }}
       >
-        {/* Front — Jobs list */}
-        {!showConfig && (
-          <div className="p-6 space-y-6 overflow-y-auto h-full" style={{ backfaceVisibility: 'hidden' }}>
+        {/* Front — Jobs list (always mounted for real 3D flip) */}
+        <div className="p-6 space-y-6 overflow-y-auto h-full" style={{ backfaceVisibility: 'hidden', position: 'absolute', inset: 0 }}>
             {/* Progress bar + controls */}
             <div className="liquid-glass rounded-card p-4">
               <div className="flex items-center justify-between mb-2">
@@ -227,15 +226,12 @@ export default function IndeedScreen({ showConfig, onToggleConfig }: { showConfi
                 ))}
               </div>
             )}
-          </div>
-        )}
+        </div>
 
-        {/* Back — Config panel */}
-        {showConfig && (
-          <div className="h-full overflow-y-auto" style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
-            <IndeedConfigPanel />
-          </div>
-        )}
+        {/* Back — Config panel (always mounted for real 3D flip) */}
+        <div className="h-full overflow-y-auto" style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', position: 'absolute', inset: 0 }}>
+          <IndeedConfigPanel />
+        </div>
       </div>
     </div>
   );

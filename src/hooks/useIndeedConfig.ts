@@ -32,9 +32,8 @@ export function useIndeedTemplates() {
     load();
   }, []);
 
-  const save = useCallback(async (id: string, patch: Partial<IndeedTemplate>) => {
-    const cat = templates.find((t) => t.id === id)?.category ?? id;
-    setSaving(cat);
+  const save = useCallback(async (id: string, category: string, patch: Partial<IndeedTemplate>) => {
+    setSaving(category);
     const { data, error } = await supabase
       .from('indeed_templates')
       .update({ ...patch, updated_at: new Date().toISOString() })
@@ -46,11 +45,14 @@ export function useIndeedTemplates() {
       setTemplates((prev) => prev.map((t) => (t.id === id ? (data as IndeedTemplate) : t)));
     }
     return !error;
-  }, [templates]);
+  }, []);
 
   const toggleActive = useCallback(async (id: string, active: boolean) => {
     setTemplates((prev) => prev.map((t) => (t.id === id ? { ...t, active } : t)));
-    await supabase.from('indeed_templates').update({ active }).eq('id', id);
+    const { error } = await supabase.from('indeed_templates').update({ active }).eq('id', id);
+    if (error) {
+      setTemplates((prev) => prev.map((t) => (t.id === id ? { ...t, active: !active } : t)));
+    }
   }, []);
 
   return { templates, loading, saving, save, toggleActive };
@@ -85,7 +87,7 @@ export function useIndeedSettings() {
         setSettings({
           categories_enabled: map.categories_enabled ?? DEFAULT_SETTINGS.categories_enabled,
           boards_enabled: map.boards_enabled ?? DEFAULT_SETTINGS.boards_enabled,
-          daily_cap: typeof map.daily_cap === 'number' ? map.daily_cap : Number(map.daily_cap ?? 50),
+          daily_cap: Math.max(1, Number(map.daily_cap) || 50),
           geo: map.geo ?? DEFAULT_SETTINGS.geo,
         });
       }
@@ -133,12 +135,18 @@ export function useEmailAccounts() {
 
   const toggle = useCallback(async (id: string, field: 'active' | 'test_mode', value: boolean) => {
     setAccounts((prev) => prev.map((a) => (a.id === id ? { ...a, [field]: value } : a)));
-    await supabase.from('email_accounts').update({ [field]: value }).eq('id', id);
+    const { error } = await supabase.from('email_accounts').update({ [field]: value }).eq('id', id);
+    if (error) {
+      setAccounts((prev) => prev.map((a) => (a.id === id ? { ...a, [field]: !value } : a)));
+    }
   }, []);
 
   const updateCap = useCallback(async (id: string, daily_cap: number) => {
     setAccounts((prev) => prev.map((a) => (a.id === id ? { ...a, daily_cap } : a)));
-    await supabase.from('email_accounts').update({ daily_cap }).eq('id', id);
+    const { error } = await supabase.from('email_accounts').update({ daily_cap }).eq('id', id);
+    if (error) {
+      setAccounts((prev) => prev.map((a) => (a.id === id ? { ...a, daily_cap: a.daily_cap } : a)));
+    }
   }, []);
 
   const addAccount = useCallback(async (email: string, label: string, provider: string) => {
