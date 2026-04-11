@@ -5,12 +5,14 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Maps friendly task names → Trigger.dev task IDs
-const TASK_MAP: Record<string, string> = {
-  "main-scrape":    "daily-scrape-orchestrator",
-  "main-enrich":    "enrich-new-leads",
-  "indeed-scrape":  "indeed-hijacker-scrape-orchestrator",
-  "indeed-enrich":  "indeed-hijacker-enrich-orchestrator",
+// Maps friendly task names → one or more Trigger.dev task IDs
+const TASK_MAP: Record<string, string[]> = {
+  "main-full-run":    ["daily-scrape-orchestrator", "enrich-new-leads"],
+  "indeed-full-run":  ["indeed-hijacker-scrape-orchestrator", "indeed-hijacker-enrich-orchestrator"],
+  "main-scrape":      ["daily-scrape-orchestrator"],
+  "main-enrich":      ["enrich-new-leads"],
+  "indeed-scrape":    ["indeed-hijacker-scrape-orchestrator"],
+  "indeed-enrich":    ["indeed-hijacker-enrich-orchestrator"],
 };
 
 // Minimal ScheduledPayload — our orchestrators only log this, don't depend on it
@@ -33,9 +35,9 @@ serve(async (req) => {
 
   try {
     const { task } = await req.json() as { task: string };
-    const taskId = TASK_MAP[task];
+    const taskIds = TASK_MAP[task];
 
-    if (!taskId) {
+    if (!taskIds) {
       return new Response(
         JSON.stringify({ error: `Unknown task: ${task}` }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -50,30 +52,35 @@ serve(async (req) => {
       );
     }
 
-    const res = await fetch(
-      `https://api.trigger.dev/api/v3/tasks/${taskId}/trigger`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({ payload: scheduledPayload() }),
-      }
+    const results = await Promise.all(
+      taskIds.map(async (taskId) => {
+        const res = await fetch(
+          `https://api.trigger.dev/api/v3/tasks/${taskId}/trigger`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({ payload: scheduledPayload() }),
+          }
+        );
+        const data = await res.json();
+        return { taskId, ok: res.ok, status: res.status, runId: data.id, error: data.error ?? null };
+      })
     );
 
-    const data = await res.json();
-
-    if (!res.ok) {
-      console.error("Trigger.dev error:", data);
+    const failed = results.filter((r) => !r.ok);
+    if (failed.length > 0) {
+      console.error("Trigger.dev errors:", failed);
       return new Response(
-        JSON.stringify({ error: "Trigger.dev rejected the request", details: data }),
-        { status: res.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "One or more tasks failed to trigger", details: failed }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     return new Response(
-      JSON.stringify({ success: true, taskId, runId: data.id }),
+      JSON.stringify({ success: true, runs: results.map((r) => ({ taskId: r.taskId, runId: r.runId })) }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
