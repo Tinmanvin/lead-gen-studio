@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart, Bar, BarChart } from 'recharts';
 import { useLeads, useLeadCounts, useLeadsPerDay } from '@/hooks/useLeads';
+import { useTriggerRun } from '@/hooks/useTriggerRun';
 
 const NICHE_COLORS: Record<string, string> = {
   dental: '#22c55e', healthcare: '#22c55e', medical: '#22c55e',
@@ -43,12 +44,88 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
+type RunState = 'idle' | 'loading' | 'success' | 'error';
+
+function RunButton({
+  label,
+  sublabel,
+  state,
+  onClick,
+}: {
+  label: string;
+  sublabel: string;
+  state: RunState;
+  onClick: () => void;
+}) {
+  const isDisabled = state === 'loading';
+
+  const buttonContent = {
+    idle: (
+      <span className="flex items-center gap-2">
+        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+        </svg>
+        Run Now
+      </span>
+    ),
+    loading: (
+      <span className="flex items-center gap-2">
+        <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+        Triggering…
+      </span>
+    ),
+    success: (
+      <span className="flex items-center gap-2">
+        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+        </svg>
+        Triggered ✓
+      </span>
+    ),
+    error: (
+      <span className="flex items-center gap-2">
+        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+        </svg>
+        Failed — retry
+      </span>
+    ),
+  };
+
+  const buttonColor = {
+    idle: 'bg-purple-primary hover:bg-purple-primary/90 text-white',
+    loading: 'bg-purple-primary/50 text-white/70 cursor-not-allowed',
+    success: 'bg-green-500/80 text-white',
+    error: 'bg-red-500/80 text-white',
+  };
+
+  return (
+    <div className="bg-white/[0.04] rounded-[12px] p-4 border border-white/[0.06] flex items-center justify-between gap-4">
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-white">{label}</p>
+        <p className="text-xs text-white/35 mt-0.5 truncate">{sublabel}</p>
+      </div>
+      <button
+        onClick={onClick}
+        disabled={isDisabled}
+        className={`flex-shrink-0 px-4 py-2 rounded-button text-xs font-semibold transition-all duration-200 ${buttonColor[state]}`}
+      >
+        {buttonContent[state]}
+      </button>
+    </div>
+  );
+}
+
 export default function Dashboard({ onNavigate }: { onNavigate?: (screen: string) => void }) {
   const [timeRange, setTimeRange] = useState('7D');
   const { counts, loading: countsLoading } = useLeadCounts();
   const { leads: topLeads, loading: leadsLoading } = useLeads(5, 'scored');
   const days = timeRange === '7D' ? 7 : timeRange === '14D' ? 14 : 30;
   const { data: leadsPerDay, loading: chartLoading } = useLeadsPerDay(days);
+  const { trigger, getState } = useTriggerRun();
 
   const briefingItems = [
     counts.hot > 0
@@ -130,6 +207,30 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (screen: string
               </AreaChart>
             </ResponsiveContainer>
           )}
+        </div>
+      </div>
+
+      {/* Run Controls */}
+      <div className="liquid-glass rounded-card p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-semibold text-[16px] text-white">Manual Controls</h3>
+            <p className="text-xs text-white/35 mt-0.5">Trigger scrapers manually for testing — scheduled runs continue automatically</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <RunButton
+            label="Run Main Scraper"
+            sublabel="Google Maps · AHPRA · HiPages · Yell + more"
+            state={getState('main-scrape')}
+            onClick={() => trigger('main-scrape')}
+          />
+          <RunButton
+            label="Run Enrichment"
+            sublabel="Signal check · scoring · email finding · icebreaker"
+            state={getState('main-enrich')}
+            onClick={() => trigger('main-enrich')}
+          />
         </div>
       </div>
 
