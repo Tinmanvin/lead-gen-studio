@@ -56,7 +56,7 @@ serve(async (req) => {
     const results = await Promise.all(
       taskIds.map(async (taskId) => {
         const res = await fetch(
-          `https://api.trigger.dev/api/v3/tasks/${taskId}/trigger`,
+          `https://api.trigger.dev/api/v1/tasks/${taskId}/trigger`,
           {
             method: "POST",
             headers: {
