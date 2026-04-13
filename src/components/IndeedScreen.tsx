@@ -1,5 +1,8 @@
+"use client";
+
 import { useState } from 'react';
 import { useIndeedJobs } from '@/hooks/useIndeedJobs';
+import { useIndeedSettings } from '@/hooks/useIndeedConfig';
 import { useTriggerRun } from '@/hooks/useTriggerRun';
 import IndeedConfigPanel from './IndeedConfigPanel';
 
@@ -19,12 +22,21 @@ const SOURCE_COLORS: Record<string, string> = {
 
 const statusColor = (s: string) => {
   switch (s) {
+    case 'approved': return 'text-green-400 font-semibold';
     case 'queued': return 'text-white/40';
     case 'sent': return 'text-white/70';
     case 'opened': return 'text-purple-primary';
     case 'replied': return 'text-purple-primary font-bold';
     case 'skipped': return 'text-white/20';
     default: return 'text-white/40';
+  }
+};
+
+const statusLabel = (s: string) => {
+  switch (s) {
+    case 'approved': return 'Queued ✓';
+    case 'queued': return 'Ready';
+    default: return s.charAt(0).toUpperCase() + s.slice(1);
   }
 };
 
@@ -76,11 +88,15 @@ function RunBtn({
 
 export default function IndeedScreen({ showConfig }: { showConfig?: boolean }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const { jobs, stats, loading } = useIndeedJobs(50);
+  const { settings } = useIndeedSettings();
+  const { jobs, stats, loading, clearToday, queueJob, dequeueJob, queueAll } = useIndeedJobs(50, settings.daily_cap);
   const { trigger, getState } = useTriggerRun();
+  const [clearing, setClearing] = useState(false);
 
   const sentTotal = stats.sent;
   const cap = stats.cap;
+  const readyCount = jobs.filter((j) => j.status === 'queued').length;
+  const approvedCount = stats.approved;
 
   return (
     <div className="h-full overflow-hidden" style={{ perspective: '1200px' }}>
@@ -92,50 +108,82 @@ export default function IndeedScreen({ showConfig }: { showConfig?: boolean }) {
           transition: 'transform 500ms ease-in-out',
         }}
       >
-        {/* Front — Jobs list (always mounted for real 3D flip) */}
-        <div className="p-6 space-y-6 overflow-y-auto h-full" style={{ backfaceVisibility: 'hidden', position: 'absolute', inset: 0 }}>
-            {/* Progress bar + controls */}
-            <div className="liquid-glass rounded-card p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-white/65">
-                  {loading ? '—' : `${sentTotal} / ${cap} sent today`}
+        {/* Front — Jobs list */}
+        <div className="p-6 space-y-4 overflow-y-auto h-full" style={{ backfaceVisibility: 'hidden', position: 'absolute', inset: 0 }}>
+
+          {/* Progress bar + controls */}
+          <div className="liquid-glass rounded-card p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-white/65">
+                {loading ? '—' : `${sentTotal} / ${cap} sent today`}
+              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-white/35">
+                  {loading ? '' : `${stats.processing} processing · ${stats.ready} ready${approvedCount > 0 ? ` · ${approvedCount} queued` : ''}`}
                 </span>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-white/35">
-                    {loading ? '' : `${stats.processing} processing · ${stats.ready} ready`}
-                  </span>
-                  <RunBtn
-                    label="Run Hijacker"
-                    state={getState('indeed-full-run')}
-                    onClick={() => trigger('indeed-full-run')}
-                  />
-                </div>
-              </div>
-              <div className="w-full h-2.5 rounded-full bg-white/[0.06] overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-purple-primary transition-all"
-                  style={{ width: `${Math.min((sentTotal / cap) * 100, 100)}%` }}
+
+                {/* Queue All — only show when there are ready jobs */}
+                {readyCount > 0 && (
+                  <button
+                    onClick={queueAll}
+                    className="px-3 py-1.5 rounded-button text-xs font-semibold bg-purple-primary/20 text-purple-primary hover:bg-purple-primary/30 transition-all duration-200 border border-purple-primary/30"
+                  >
+                    Queue All ({readyCount})
+                  </button>
+                )}
+
+                {/* Clear button */}
+                {(jobs.length > 0 || stats.processing > 0) && (
+                  <button
+                    onClick={async () => {
+                      setClearing(true);
+                      await clearToday();
+                      setClearing(false);
+                    }}
+                    disabled={clearing}
+                    className="px-3 py-1.5 rounded-button text-xs font-medium border border-white/[0.08] text-white/30 hover:text-white/60 hover:border-white/20 transition-all duration-200 disabled:opacity-40"
+                  >
+                    {clearing ? 'Clearing…' : 'Clear'}
+                  </button>
+                )}
+
+                <RunBtn
+                  label="Run Hijacker"
+                  state={getState('indeed-full-run')}
+                  onClick={() => trigger('indeed-full-run')}
                 />
               </div>
             </div>
+            <div className="w-full h-2.5 rounded-full bg-white/[0.06] overflow-hidden">
+              <div
+                className="h-full rounded-full bg-purple-primary transition-all"
+                style={{ width: `${Math.min((sentTotal / cap) * 100, 100)}%` }}
+              />
+            </div>
+          </div>
 
-            {/* Job rows */}
-            {loading ? (
-              <div className="py-12 text-center text-white/30 text-sm">Loading today's jobs…</div>
-            ) : jobs.length === 0 ? (
-              <div className="liquid-glass rounded-card p-10 text-center space-y-2">
-                <p className="text-white/50 text-sm font-medium">No jobs scraped yet today</p>
-                <p className="text-white/25 text-xs">
-                  Hit Run Hijacker to start scraping, or wait for the 3am cron.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {jobs.map((job) => (
+          {/* Job rows */}
+          {loading ? (
+            <div className="py-12 text-center text-white/30 text-sm">Loading today's jobs…</div>
+          ) : jobs.length === 0 ? (
+            <div className="liquid-glass rounded-card p-10 text-center space-y-2">
+              <p className="text-white/50 text-sm font-medium">No jobs scraped yet today</p>
+              <p className="text-white/25 text-xs">
+                Hit Run Hijacker to start scraping, or wait for the 3am cron.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {jobs.map((job) => {
+                const isApproved = job.status === 'approved';
+                const isExpanded = expandedId === job.id;
+
+                return (
                   <div key={job.id} className="liquid-glass rounded-card overflow-hidden">
+                    {/* Compact row */}
                     <div
-                      className="p-4 flex items-center justify-between cursor-pointer hover:bg-white/[0.04] transition-colors"
-                      onClick={() => setExpandedId(expandedId === job.id ? null : job.id)}
+                      className="p-3 flex items-center justify-between cursor-pointer hover:bg-white/[0.04] transition-colors"
+                      onClick={() => setExpandedId(isExpanded ? null : job.id)}
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="min-w-0">
@@ -161,7 +209,7 @@ export default function IndeedScreen({ showConfig }: { showConfig?: boolean }) {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-5 text-xs flex-shrink-0 ml-4">
+                      <div className="flex items-center gap-3 text-xs flex-shrink-0 ml-4">
                         {job.salary && (
                           <span className="text-white/40 hidden xl:block">{job.salary}</span>
                         )}
@@ -170,19 +218,32 @@ export default function IndeedScreen({ showConfig }: { showConfig?: boolean }) {
                             ? <span className="text-green-400">✓</span>
                             : <span className="text-white/20">✗</span>}
                         </span>
-                        {job.template_used && (
-                          <span className="text-white/35 hidden lg:block">{job.template_used}</span>
-                        )}
                         <span className={statusColor(job.status)}>
-                          {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
+                          {statusLabel(job.status)}
                         </span>
-                        {job.hours_since_posted != null && (
-                          <span className="text-white/25">{job.hours_since_posted}h ago</span>
+
+                        {/* Compact Queue / Dequeue button — stop propagation so row doesn't expand */}
+                        {(job.status === 'queued' || job.status === 'approved') && job.email_found && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              isApproved ? dequeueJob(job.id) : queueJob(job.id);
+                            }}
+                            className={`px-2.5 py-1 rounded-button text-[11px] font-semibold transition-all duration-200 flex-shrink-0 ${
+                              isApproved
+                                ? 'bg-green-500/20 text-green-400 hover:bg-red-500/20 hover:text-red-400 border border-green-500/20 hover:border-red-500/20'
+                                : 'bg-purple-primary/20 text-purple-primary hover:bg-purple-primary/30 border border-purple-primary/30'
+                            }`}
+                            title={isApproved ? 'Remove from queue' : 'Add to send queue'}
+                          >
+                            {isApproved ? 'Queued ✓' : 'Queue'}
+                          </button>
                         )}
                       </div>
                     </div>
 
-                    {expandedId === job.id && (
+                    {/* Expanded email preview */}
+                    {isExpanded && (
                       <div className="px-4 pb-4 pt-0 border-t border-white/[0.06] space-y-3">
                         {job.email_body ? (
                           <>
@@ -196,10 +257,17 @@ export default function IndeedScreen({ showConfig }: { showConfig?: boolean }) {
                               <p className="text-xs uppercase tracking-wider text-white/35 mb-1">Email</p>
                               <p className="text-sm text-white/70 leading-relaxed whitespace-pre-line">{job.email_body}</p>
                             </div>
-                            {job.status === 'found' || job.status === 'queued' ? (
+                            {(job.status === 'queued' || job.status === 'approved') ? (
                               <div className="flex gap-2 mt-2">
-                                <button className="px-4 py-1.5 rounded-button bg-purple-primary text-white text-xs font-semibold hover:bg-purple-primary/90 transition-colors">
-                                  Queue in Instantly
+                                <button
+                                  onClick={() => isApproved ? dequeueJob(job.id) : queueJob(job.id)}
+                                  className={`px-4 py-1.5 rounded-button text-xs font-semibold transition-colors ${
+                                    isApproved
+                                      ? 'bg-green-500/20 text-green-400 hover:bg-red-500/20 hover:text-red-400'
+                                      : 'bg-purple-primary text-white hover:bg-purple-primary/90'
+                                  }`}
+                                >
+                                  {isApproved ? 'Remove from Queue' : 'Queue in Instantly'}
                                 </button>
                                 <button className="px-4 py-1.5 rounded-button border border-white/[0.08] text-white/40 text-xs hover:text-white/70 transition-colors">
                                   Skip
@@ -223,12 +291,13 @@ export default function IndeedScreen({ showConfig }: { showConfig?: boolean }) {
                       </div>
                     )}
                   </div>
-                ))}
-              </div>
-            )}
+                );
+              })}
+            </div>
+          )}
         </div>
 
-        {/* Back — Config panel (always mounted for real 3D flip) */}
+        {/* Back — Config panel */}
         <div className="h-full overflow-y-auto" style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', position: 'absolute', inset: 0 }}>
           <IndeedConfigPanel />
         </div>

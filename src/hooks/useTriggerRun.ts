@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 export type TriggerTask =
   | 'main-full-run'
   | 'indeed-full-run'
+  | 'indeed-send'
   | 'main-scrape'
   | 'main-enrich'
   | 'indeed-scrape'
