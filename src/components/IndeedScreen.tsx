@@ -90,7 +90,7 @@ export default function IndeedScreen({ showConfig }: { showConfig?: boolean }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const { settings } = useIndeedSettings();
   const { jobs, stats, loading, clearToday, queueJob, dequeueJob, queueAll, dequeueAll } = useIndeedJobs(50, settings.daily_cap);
-  const { trigger, getState } = useTriggerRun();
+  const { trigger, getState, getError } = useTriggerRun();
   const [clearing, setClearing] = useState(false);
 
   const sentTotal = stats.sent;
@@ -156,6 +156,13 @@ export default function IndeedScreen({ showConfig }: { showConfig?: boolean }) {
                   </button>
                 )}
 
+                {approvedCount > 0 && (
+                  <RunBtn
+                    label={`Send Queued (${approvedCount})`}
+                    state={getState('indeed-send')}
+                    onClick={() => trigger('indeed-send')}
+                  />
+                )}
                 <RunBtn
                   label="Run Hijacker"
                   state={getState('indeed-full-run')}
@@ -169,6 +176,11 @@ export default function IndeedScreen({ showConfig }: { showConfig?: boolean }) {
                 style={{ width: `${Math.min((sentTotal / cap) * 100, 100)}%` }}
               />
             </div>
+            {(getError('indeed-send') || getError('indeed-full-run')) && (
+              <p className="mt-2 text-xs text-red-400/80">
+                Error: {getError('indeed-send') ?? getError('indeed-full-run')}
+              </p>
+            )}
           </div>
 
           {/* Job rows */}
