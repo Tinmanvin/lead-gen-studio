@@ -242,6 +242,11 @@ export default function IndeedScreen({ showConfig }: { showConfig?: boolean }) {
                         <span className={statusColor(job.status)}>
                           {statusLabel(job.status)}
                         </span>
+                        {job.sent_via && (
+                          <span className="text-white/20 text-[10px] hidden xl:block" title={job.sent_via}>
+                            via {job.sent_via.split('@')[0]}
+                          </span>
+                        )}
 
                         {/* Compact Queue / Dequeue button — stop propagation so row doesn't expand */}
                         {(job.status === 'queued' || job.status === 'approved') && job.email_found && (

@@ -20,6 +20,7 @@ export interface IndeedJob {
   email_subject: string | null;
   email_body: string | null;
   status: string;
+  sent_via: string | null;
   created_at: string;
 }
 
@@ -55,7 +56,7 @@ export function useIndeedJobs(limit = 50, dailyCap = 50) {
             .from('indeed_jobs')
             .select('*')
             .gte('created_at', todayISO)
-            .in('status', ['queued', 'approved'])
+            .in('status', ['queued', 'approved', 'sent', 'opened', 'replied'])
             .order('repost_count', { ascending: false })
             .order('created_at', { ascending: false })
             .limit(limit),
@@ -116,8 +117,9 @@ export function useIndeedJobs(limit = 50, dailyCap = 50) {
                 .sort((a, b) => b.repost_count - a.repost_count)
                 .slice(0, limit);
             }
-            // If moved to sent/skipped — remove from list
-            return prev.filter((j) => j.id !== updated.id);
+            // If moved to sent/skipped — update in place (keep visible, show sent_via)
+            if (updated.status === 'skipped') return prev.filter((j) => j.id !== updated.id);
+            return prev.map((j) => (j.id === updated.id ? updated : j));
           });
 
           setStats((prev) => {
