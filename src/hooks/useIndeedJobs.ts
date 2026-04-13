@@ -203,7 +203,6 @@ export function useIndeedJobs(limit = 50, dailyCap = 50) {
       .in('id', readyIds);
 
     if (error) {
-      // Rollback
       setJobs((prev) =>
         prev.map((j) => (readyIds.includes(j.id) ? { ...j, status: 'queued' } : j))
       );
@@ -211,6 +210,38 @@ export function useIndeedJobs(limit = 50, dailyCap = 50) {
         ...prev,
         ready: prev.ready + readyCount,
         approved: Math.max(0, prev.approved - readyCount),
+      }));
+    }
+  }, [jobs]);
+
+  // Dequeue ALL approved jobs at once
+  const dequeueAll = useCallback(async () => {
+    const approvedIds = jobs.filter((j) => j.status === 'approved').map((j) => j.id);
+    if (approvedIds.length === 0) return;
+
+    const count = approvedIds.length;
+    setJobs((prev) =>
+      prev.map((j) => (approvedIds.includes(j.id) ? { ...j, status: 'queued' } : j))
+    );
+    setStats((prev) => ({
+      ...prev,
+      approved: Math.max(0, prev.approved - count),
+      ready: prev.ready + count,
+    }));
+
+    const { error } = await supabase
+      .from('indeed_jobs')
+      .update({ status: 'queued' })
+      .in('id', approvedIds);
+
+    if (error) {
+      setJobs((prev) =>
+        prev.map((j) => (approvedIds.includes(j.id) ? { ...j, status: 'approved' } : j))
+      );
+      setStats((prev) => ({
+        ...prev,
+        approved: prev.approved + count,
+        ready: Math.max(0, prev.ready - count),
       }));
     }
   }, [jobs]);
@@ -225,5 +256,5 @@ export function useIndeedJobs(limit = 50, dailyCap = 50) {
     setStats({ processing: 0, ready: 0, approved: 0, sent: 0, cap: dailyCap });
   }
 
-  return { jobs, stats, loading, clearToday, queueJob, dequeueJob, queueAll };
+  return { jobs, stats, loading, clearToday, queueJob, dequeueJob, queueAll, dequeueAll };
 }

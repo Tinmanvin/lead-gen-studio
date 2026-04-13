@@ -89,7 +89,7 @@ function RunBtn({
 export default function IndeedScreen({ showConfig }: { showConfig?: boolean }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const { settings } = useIndeedSettings();
-  const { jobs, stats, loading, clearToday, queueJob, dequeueJob, queueAll } = useIndeedJobs(50, settings.daily_cap);
+  const { jobs, stats, loading, clearToday, queueJob, dequeueJob, queueAll, dequeueAll } = useIndeedJobs(50, settings.daily_cap);
   const { trigger, getState } = useTriggerRun();
   const [clearing, setClearing] = useState(false);
 
@@ -122,14 +122,23 @@ export default function IndeedScreen({ showConfig }: { showConfig?: boolean }) {
                   {loading ? '' : `${stats.processing} processing · ${stats.ready} ready${approvedCount > 0 ? ` · ${approvedCount} queued` : ''}`}
                 </span>
 
-                {/* Queue All — only show when there are ready jobs */}
-                {readyCount > 0 && (
-                  <button
-                    onClick={queueAll}
-                    className="px-3 py-1.5 rounded-button text-xs font-semibold bg-purple-primary/20 text-purple-primary hover:bg-purple-primary/30 transition-all duration-200 border border-purple-primary/30"
-                  >
-                    Queue All ({readyCount})
-                  </button>
+                {/* Queue All / Unqueue All toggle */}
+                {(readyCount > 0 || approvedCount > 0) && (
+                  readyCount > 0 ? (
+                    <button
+                      onClick={queueAll}
+                      className="px-3 py-1.5 rounded-button text-xs font-semibold bg-purple-primary/20 text-purple-primary hover:bg-purple-primary/30 transition-all duration-200 border border-purple-primary/30"
+                    >
+                      Queue All ({readyCount})
+                    </button>
+                  ) : (
+                    <button
+                      onClick={dequeueAll}
+                      className="px-3 py-1.5 rounded-button text-xs font-semibold bg-green-500/20 text-green-400 hover:bg-red-500/20 hover:text-red-400 transition-all duration-200 border border-green-500/20 hover:border-red-500/20"
+                    >
+                      Unqueue All ({approvedCount})
+                    </button>
+                  )
                 )}
 
                 {/* Clear button */}
