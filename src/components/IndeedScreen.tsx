@@ -92,11 +92,33 @@ export default function IndeedScreen({ showConfig }: { showConfig?: boolean }) {
   const { jobs, stats, loading, clearToday, queueJob, dequeueJob, queueAll, dequeueAll } = useIndeedJobs(50, settings.daily_cap);
   const { trigger, getState, getError } = useTriggerRun();
   const [clearing, setClearing] = useState(false);
+  const [sendState, setSendState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [prevSentTotal, setPrevSentTotal] = useState<number | null>(null);
 
   const sentTotal = stats.sent;
   const cap = stats.cap;
   const readyCount = jobs.filter((j) => j.status === 'queued').length;
   const approvedCount = stats.approved;
+
+  // Watch for sent count to increase — that's real confirmation
+  const handleSendQueued = async () => {
+    setSendState('loading');
+    setPrevSentTotal(sentTotal);
+    await trigger('indeed-send');
+    // Poll until sent count increases or 60s timeout
+    const start = Date.now();
+    const poll = setInterval(() => {
+      if (stats.sent > (prevSentTotal ?? sentTotal)) {
+        setSendState('success');
+        clearInterval(poll);
+        setTimeout(() => setSendState('idle'), 4000);
+      } else if (Date.now() - start > 60000) {
+        setSendState('error');
+        clearInterval(poll);
+        setTimeout(() => setSendState('idle'), 4000);
+      }
+    }, 3000);
+  };
 
   return (
     <div className="h-full overflow-hidden" style={{ perspective: '1200px' }}>
@@ -156,11 +178,11 @@ export default function IndeedScreen({ showConfig }: { showConfig?: boolean }) {
                   </button>
                 )}
 
-                {approvedCount > 0 && (
+                {(approvedCount > 0 || readyCount > 0 || sendState !== 'idle') && (
                   <RunBtn
-                    label={`Send Queued (${approvedCount})`}
-                    state={getState('indeed-send')}
-                    onClick={() => trigger('indeed-send')}
+                    label={sendState === 'success' ? `Sent ✓` : `Send Queued (${approvedCount + readyCount})`}
+                    state={sendState}
+                    onClick={handleSendQueued}
                   />
                 )}
                 <RunBtn
