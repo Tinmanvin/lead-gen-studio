@@ -63,9 +63,17 @@
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.9",
+    "@trigger.dev/sdk": "^3.3.17",
+    "nodemailer": "^8.0.5",
+    "puppeteer": "^24.40.0",
     "zod": "^3.25.76"
   },
+  "trigger": {
+    "deploy": "TRIGGER_SECRET_KEY=tr_prod_Kg1YhaXtmXcFezQVNTR9 npx trigger.dev@3.3.17 deploy"
+  },
   "devDependencies": {
+    "@trigger.dev/build": "^3.3.17",
+    "@types/nodemailer": "^8.0.0",
     "@eslint/js": "^9.32.0",
     "@playwright/test": "^1.57.0",
     "@tailwindcss/typography": "^0.5.16",
