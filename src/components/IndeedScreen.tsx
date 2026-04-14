@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useIndeedJobs } from '@/hooks/useIndeedJobs';
 import { useIndeedSettings } from '@/hooks/useIndeedConfig';
 import { useTriggerRun } from '@/hooks/useTriggerRun';
@@ -94,26 +94,29 @@ export default function IndeedScreen({ showConfig }: { showConfig?: boolean }) {
   const { trigger, getState, getError } = useTriggerRun();
   const [clearing, setClearing] = useState(false);
   const [sendState, setSendState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const sendTargetRef = React.useRef<number>(0);
+  const sendTargetRef = useRef<number>(0);
+  const sentTotalRef = useRef<number>(0);
 
   const sentTotal = stats.sent;
   const cap = stats.cap;
   const readyCount = jobs.filter((j) => j.status === 'queued').length;
   const approvedCount = stats.approved;
 
-  // Only show success when ALL queued-at-click-time jobs have actually sent
+  // Keep ref in sync with latest stats.sent so the polling closure reads fresh values
+  sentTotalRef.current = sentTotal;
+
   const handleSendQueued = async () => {
     if (approvedCount === 0) return;
-    sendTargetRef.current = sentTotal + approvedCount; // target = current + how many we're sending
+    sendTargetRef.current = sentTotal + approvedCount;
     setSendState('loading');
     await trigger('indeed-send');
     const start = Date.now();
     const poll = setInterval(() => {
-      if (stats.sent >= sendTargetRef.current) {
+      if (sentTotalRef.current >= sendTargetRef.current) {
         setSendState('success');
         clearInterval(poll);
         setTimeout(() => setSendState('idle'), 4000);
-      } else if (Date.now() - start > 90000) {
+      } else if (Date.now() - start > 120000) {
         setSendState('error');
         clearInterval(poll);
         setTimeout(() => setSendState('idle'), 4000);
