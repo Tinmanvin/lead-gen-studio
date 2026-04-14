@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useIndeedJobs } from '@/hooks/useIndeedJobs';
 import { useIndeedSettings } from '@/hooks/useIndeedConfig';
 import { useTriggerRun } from '@/hooks/useTriggerRun';
@@ -24,7 +24,7 @@ const statusColor = (s: string) => {
   switch (s) {
     case 'approved': return 'text-green-400 font-semibold';
     case 'queued': return 'text-white/40';
-    case 'sent': return 'text-white/70';
+    case 'sent': return 'text-green-400/70';
     case 'opened': return 'text-purple-primary';
     case 'replied': return 'text-purple-primary font-bold';
     case 'skipped': return 'text-white/20';
@@ -36,6 +36,7 @@ const statusLabel = (s: string) => {
   switch (s) {
     case 'approved': return 'Queued ✓';
     case 'queued': return 'Ready';
+    case 'sent': return 'Sent ✓';
     default: return s.charAt(0).toUpperCase() + s.slice(1);
   }
 };
@@ -93,26 +94,26 @@ export default function IndeedScreen({ showConfig }: { showConfig?: boolean }) {
   const { trigger, getState, getError } = useTriggerRun();
   const [clearing, setClearing] = useState(false);
   const [sendState, setSendState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [prevSentTotal, setPrevSentTotal] = useState<number | null>(null);
+  const sendTargetRef = React.useRef<number>(0);
 
   const sentTotal = stats.sent;
   const cap = stats.cap;
   const readyCount = jobs.filter((j) => j.status === 'queued').length;
   const approvedCount = stats.approved;
 
-  // Watch for sent count to increase — that's real confirmation
+  // Only show success when ALL queued-at-click-time jobs have actually sent
   const handleSendQueued = async () => {
+    if (approvedCount === 0) return;
+    sendTargetRef.current = sentTotal + approvedCount; // target = current + how many we're sending
     setSendState('loading');
-    setPrevSentTotal(sentTotal);
     await trigger('indeed-send');
-    // Poll until sent count increases or 60s timeout
     const start = Date.now();
     const poll = setInterval(() => {
-      if (stats.sent > (prevSentTotal ?? sentTotal)) {
+      if (stats.sent >= sendTargetRef.current) {
         setSendState('success');
         clearInterval(poll);
         setTimeout(() => setSendState('idle'), 4000);
-      } else if (Date.now() - start > 60000) {
+      } else if (Date.now() - start > 90000) {
         setSendState('error');
         clearInterval(poll);
         setTimeout(() => setSendState('idle'), 4000);
@@ -178,9 +179,9 @@ export default function IndeedScreen({ showConfig }: { showConfig?: boolean }) {
                   </button>
                 )}
 
-                {(approvedCount > 0 || readyCount > 0 || sendState !== 'idle') && (
+                {(approvedCount > 0 || sendState !== 'idle') && (
                   <RunBtn
-                    label={sendState === 'success' ? `Sent ✓` : `Send Queued (${approvedCount + readyCount})`}
+                    label={sendState === 'success' ? 'Sent ✓' : `Send Queued (${approvedCount})`}
                     state={sendState}
                     onClick={handleSendQueued}
                   />
