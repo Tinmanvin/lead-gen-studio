@@ -4,6 +4,7 @@ import React, { useState, useRef } from 'react';
 import { useIndeedJobs } from '@/hooks/useIndeedJobs';
 import { useIndeedSettings } from '@/hooks/useIndeedConfig';
 import { useTriggerRun } from '@/hooks/useTriggerRun';
+import { supabase } from '@/lib/supabase';
 import IndeedConfigPanel from './IndeedConfigPanel';
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -109,14 +110,28 @@ export default function IndeedScreen({ showConfig }: { showConfig?: boolean }) {
     if (approvedCount === 0) return;
     sendTargetRef.current = sentTotal + approvedCount;
     setSendState('loading');
-    await trigger('indeed-send');
+
+    // Call send-queued-emails edge function directly — bypasses Trigger.dev entirely
+    const { data, error } = await supabase.functions.invoke('send-queued-emails');
+    if (error || !data?.success) {
+      setSendState('error');
+      setTimeout(() => setSendState('idle'), 4000);
+      return;
+    }
+    if (data.sent > 0) {
+      setSendState('success');
+      setTimeout(() => setSendState('idle'), 4000);
+      return;
+    }
+
+    // No emails sent yet — poll DB for confirmation (handles async delays)
     const start = Date.now();
     const poll = setInterval(() => {
       if (sentTotalRef.current >= sendTargetRef.current) {
         setSendState('success');
         clearInterval(poll);
         setTimeout(() => setSendState('idle'), 4000);
-      } else if (Date.now() - start > 120000) {
+      } else if (Date.now() - start > 30000) {
         setSendState('error');
         clearInterval(poll);
         setTimeout(() => setSendState('idle'), 4000);
