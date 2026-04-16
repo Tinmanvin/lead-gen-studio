@@ -64,6 +64,67 @@ async function researchCompanyWithExa(
   }
 }
 
+interface ChannelCopy {
+  email_subject: string;
+  email_body: string;
+  linkedin_msg: string;
+  whatsapp_msg: string;
+  facebook_msg: string;
+}
+
+async function generateChannelCopy(
+  companyName: string,
+  dmName: string | null,
+  niche: string,
+  signals: string[],
+  icebreaker: string,
+  demoType: string
+): Promise<ChannelCopy> {
+  const name = dmName ?? "there";
+  const signalList = signals.slice(0, 3).join(", ") || "missing key digital systems";
+  const hasDemo = ["WIDGET", "REDESIGN", "NEW_SITE", "COMPOUND"].includes(demoType);
+
+  const prompt = `You write multi-channel outreach copy for a cold outreach campaign. Write all 5 pieces below. Be concise, human, no fluff.
+
+Context:
+- Company: ${companyName}
+- Niche: ${niche}
+- Decision maker: ${name}
+- Pain signals: ${signalList}
+- Icebreaker (use this to open email): "${icebreaker}"
+- Demo available: ${hasDemo ? "yes" : "no"}
+
+Write exactly this JSON (no markdown, no extra text):
+{
+  "email_subject": "<10 words max, curiosity not clickbait>",
+  "email_body": "<3-4 sentences. Start with icebreaker. Explain 1 specific gap. Soft ask for 10 min call. 80 words max.>",
+  "linkedin_msg": "<connection request note, 280 chars max. Reference one specific signal. No pitch. End with question.>",
+  "whatsapp_msg": "<casual 2-sentence intro. State you noticed something specific about their business. Ask if ok to share. 60 words max.>",
+  "facebook_msg": "<friendly 2-sentence message. Reference their business by name. Ask one soft question. 50 words max.>"
+}`;
+
+  try {
+    const response = await anthropic.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 600,
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const text = response.content[0].type === "text" ? response.content[0].text.trim() : "{}";
+    const parsed = JSON.parse(text) as ChannelCopy;
+    return parsed;
+  } catch (err) {
+    logger.warn("Channel copy generation failed", { company: companyName, error: String(err) });
+    return {
+      email_subject: `Quick question about ${companyName}`,
+      email_body: `${icebreaker}\n\nI work with ${niche} businesses on AI-powered systems that help capture and convert more leads. Worth a 10-minute chat?`,
+      linkedin_msg: `Hi ${name}, I noticed ${signalList.split(",")[0]} at ${companyName}. Would love to connect and share something relevant.`,
+      whatsapp_msg: `Hi ${name}, spotted something interesting about ${companyName}. Mind if I share a quick thought?`,
+      facebook_msg: `Hi ${name}! I came across ${companyName} and noticed something worth mentioning. Happy to connect?`,
+    };
+  }
+}
+
 async function generateIcebreaker(
   companyName: string,
   dmName: string | null,
@@ -160,15 +221,32 @@ export const exaResearch = schemaTask({
     );
 
     if (icebreaker) {
+      // Fetch demo_type to inform channel copy
+      const demoType = (lead as Record<string, unknown>).demo_type as string ?? "EMAIL_ONLY";
+
+      const channelCopy = await generateChannelCopy(
+        lead.company_name,
+        lead.dm_name,
+        lead.niche ?? "business",
+        signals,
+        icebreaker,
+        demoType,
+      );
+
       await supabase
         .from("leads")
         .update({
           exa_research: exaResearchText || null,
           icebreaker,
+          email_subject: channelCopy.email_subject,
+          email_body: channelCopy.email_body,
+          linkedin_msg: channelCopy.linkedin_msg,
+          whatsapp_msg: channelCopy.whatsapp_msg,
+          facebook_msg: channelCopy.facebook_msg,
         })
         .eq("id", leadId);
 
-      logger.log(`Icebreaker generated for ${lead.company_name}: "${icebreaker}"`);
+      logger.log(`Icebreaker + channel copy generated for ${lead.company_name}`);
       return { success: true, icebreaker };
     }
 
