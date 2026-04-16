@@ -224,12 +224,11 @@ export const enrichNewLeads = schedules.task({
       .eq("status", "new")
       .limit(500); // Process up to 500 at a time
 
-    if (!newLeads?.length) {
-      logger.log("No new leads to enrich");
-      return { success: true, enriched: 0 };
+    if (newLeads?.length) {
+      logger.log(`Enriching ${newLeads.length} new leads through signal pipeline`);
+    } else {
+      logger.log("No new leads — skipping signal enrichment, continuing to email + Exa stages");
     }
-
-    logger.log(`Enriching ${newLeads.length} new leads`);
 
     // Import here to avoid circular dependency issues at module load time
     const { signalEnrichment } = await import("../enrichment/signal-enrichment.js");
@@ -237,32 +236,43 @@ export const enrichNewLeads = schedules.task({
     const { exaResearch } = await import("../enrichment/exa-research.js");
 
     // Fire signal enrichment for all new leads (scorer is chained inside)
-    for (let i = 0; i < newLeads.length; i += 25) {
-      const chunk = newLeads.slice(i, i + 25);
-      await signalEnrichment.batchTrigger(
-        chunk.map((lead) => ({ payload: { leadId: lead.id, userId } }))
-      );
+    if (newLeads?.length) {
+      for (let i = 0; i < newLeads.length; i += 25) {
+        const chunk = newLeads.slice(i, i + 25);
+        await signalEnrichment.batchTrigger(
+          chunk.map((lead) => ({ payload: { leadId: lead.id, userId } }))
+        );
+      }
     }
 
-    // Fire email enrichment for all new leads with websites
-    const { data: leadsWithWebsites } = await supabase
-      .from("leads")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("status", "new")
-      .not("website", "is", null)
-      .is("dm_email", null)
-      .limit(200);
+    // Fire email enrichment for ALL leads with websites but no email yet (any status)
+    // Process in pages of 200 to cover the full backlog
+    let emailOffset = 0;
+    let emailTotal = 0;
+    while (true) {
+      const { data: leadsWithWebsites } = await supabase
+        .from("leads")
+        .select("id")
+        .eq("user_id", userId)
+        .in("status", ["new", "enriched", "scored"])
+        .not("website", "is", null)
+        .is("dm_email", null)
+        .range(emailOffset, emailOffset + 199);
 
-    if (leadsWithWebsites?.length) {
+      if (!leadsWithWebsites?.length) break;
+
       for (let i = 0; i < leadsWithWebsites.length; i += 25) {
         const chunk = leadsWithWebsites.slice(i, i + 25);
         await emailEnrichment.batchTrigger(
           chunk.map((lead) => ({ payload: { leadId: lead.id, userId } }))
         );
       }
-      logger.log(`Email enrichment triggered for ${leadsWithWebsites.length} leads`);
+
+      emailTotal += leadsWithWebsites.length;
+      if (leadsWithWebsites.length < 200) break;
+      emailOffset += 200;
     }
+    logger.log(`Email enrichment triggered for ${emailTotal} leads`);
 
     // Fire Exa research only for high-scoring leads (value_add_score >= 2, no icebreaker yet)
     const { data: hotScores } = await supabase
