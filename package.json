@@ -13,6 +13,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.90.0",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",
@@ -43,6 +44,7 @@
     "@radix-ui/react-tooltip": "^1.2.7",
     "@supabase/supabase-js": "^2.103.0",
     "@tanstack/react-query": "^5.83.0",
+    "@trigger.dev/sdk": "3.3.17",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -52,6 +54,8 @@
     "input-otp": "^1.4.2",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
+    "nodemailer": "^8.0.5",
+    "puppeteer": "^24.40.0",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
@@ -63,23 +67,20 @@
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.9",
-    "@trigger.dev/sdk": "^3.3.17",
-    "nodemailer": "^8.0.5",
-    "puppeteer": "^24.40.0",
     "zod": "^3.25.76"
   },
   "trigger": {
-    "deploy": "TRIGGER_SECRET_KEY=tr_prod_Kg1YhaXtmXcFezQVNTR9 npx trigger.dev@3.3.17 deploy"
+    "deploy": "npx trigger.dev@3.3.17 deploy"
   },
   "devDependencies": {
-    "@trigger.dev/build": "^3.3.17",
-    "@types/nodemailer": "^8.0.0",
     "@eslint/js": "^9.32.0",
     "@playwright/test": "^1.57.0",
     "@tailwindcss/typography": "^0.5.16",
     "@testing-library/jest-dom": "^6.6.0",
     "@testing-library/react": "^16.0.0",
+    "@trigger.dev/build": "3.3.17",
     "@types/node": "^22.16.5",
+    "@types/nodemailer": "^8.0.0",
     "@types/react": "^18.3.23",
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react-swc": "^3.11.0",
