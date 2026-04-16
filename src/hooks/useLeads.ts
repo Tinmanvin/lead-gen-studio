@@ -8,24 +8,45 @@ export interface Lead {
   niche: string;
   country: string;
   city?: string;
+  timezone?: string;
+  phone?: string;
   dm_name?: string;
+  dm_title?: string;
   dm_email?: string;
   dm_linkedin_url?: string;
   dm_whatsapp?: string;
+  dm_facebook_url?: string;
   source: string;
   rating?: number;
   review_count?: number;
   status: string;
+  demo_type?: string;
+  icebreaker?: string;
+  email_subject?: string;
+  email_body?: string;
+  linkedin_msg?: string;
+  whatsapp_msg?: string;
+  facebook_msg?: string;
+  has_chatbot?: boolean;
+  has_ssl?: boolean;
+  tech_stack?: string[];
   created_at: string;
 }
 
 export interface LeadScore {
   lead_id: string;
-  total_score: number;
-  touchpoint_tier: string;
-  demo_type: string;
-  signals: string[];
   value_add_score: number;
+  composite_score: number;
+  touchpoint_tier: string;
+  touchpoints_available: string[];
+  applicable_services: string[];
+  has_lead_reactivation?: boolean;
+  has_speed_to_lead?: boolean;
+  has_website_widget?: boolean;
+  has_website_rebuild?: boolean;
+  has_new_website?: boolean;
+  has_follow_up_automation?: boolean;
+  has_after_hours_automation?: boolean;
 }
 
 export interface EnrichedLead extends Lead {
