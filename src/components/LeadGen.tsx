@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLeadPipelineStats } from '@/hooks/useLeadPipelineStats';
-import { useOutreachLeads } from '@/hooks/useOutreachLeads';
+import { useHotLeads } from '@/hooks/useHotLeads';
 import { useGeoSettings } from '@/hooks/useSettings';
 import { useSourceToggles, SOURCE_KEYS, SOURCE_LABELS } from '@/hooks/useSourceToggles';
 import { useTriggerRun } from '@/hooks/useTriggerRun';
@@ -226,7 +226,7 @@ export default function LeadGen({
   showEngine?: boolean;
 }) {
   const { stats: pipeline, loading: pipelineLoading } = useLeadPipelineStats();
-  const { hotLeads, loading: leadsLoading } = useOutreachLeads(50);
+  const { leads: hotLeads, loading: leadsLoading } = useHotLeads(50);
   const { trigger, getState, getError } = useTriggerRun();
 
   const pipelineTiles = [
@@ -288,9 +288,9 @@ export default function LeadGen({
               ) : (
                 <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
                   {hotLeads.slice(0, 12).map((lead) => {
-                    const score = lead.score?.value_add_score ?? 0;
+                    const score = lead.value_add_score ?? 0;
                     const demoType = (lead.demo_type ?? 'email_only').toLowerCase();
-                    const services = lead.score?.applicable_services ?? [];
+                    const services = lead.applicable_services ?? [];
                     const accentColor = score >= 5 ? '2px solid rgba(168,85,247,0.5)' : score >= 3 ? '2px solid rgba(123,57,252,0.35)' : '2px solid rgba(255,255,255,0.08)';
 
                     return (
