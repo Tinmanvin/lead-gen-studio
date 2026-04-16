@@ -55,6 +55,7 @@ export default function Index() {
   const { trigger, getState } = useTriggerRun();
   const [heroVisible, setHeroVisible] = useState(true);
   const [showEngine, setShowEngine] = useState(false);
+  const [showOutreachEngine, setShowOutreachEngine] = useState(false);
   const [showIndeedConfig, setShowIndeedConfig] = useState(false);
 
   const handleExpandApp = () => {
@@ -167,7 +168,7 @@ export default function Index() {
                 return (
                   <button
                     key={item.key}
-                    onClick={() => { setActiveScreen(item.key); setShowEngine(false); setShowIndeedConfig(false); }}
+                    onClick={() => { setActiveScreen(item.key); setShowEngine(false); setShowOutreachEngine(false); setShowIndeedConfig(false); }}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${isActive ? 'bg-purple-primary/20' : 'hover:bg-purple-primary/[0.15]'}`}
                     style={isActive ? { borderLeft: '2px solid #7b39fc' } : undefined}
                   >
@@ -224,6 +225,14 @@ export default function Index() {
                     </button>
                   </>
                 )}
+                {activeScreen === 'outreach' && (
+                  <button
+                    onClick={() => setShowOutreachEngine(!showOutreachEngine)}
+                    className={`text-xs px-3 py-1.5 rounded-button transition-colors flex items-center gap-1.5 ${showOutreachEngine ? 'bg-purple-primary/20 text-purple-primary' : 'bg-white/[0.06] text-white/50 hover:text-white/70'}`}
+                  >
+                    <RotateCcw size={12} /> {showOutreachEngine ? 'Back to Queue' : 'Engine Room'}
+                  </button>
+                )}
                 {activeScreen === 'indeed' && (
                   <>
                     <button
@@ -242,7 +251,7 @@ export default function Index() {
             <div key={appState} className="flex-1 overflow-hidden rounded-tl-2xl" style={{ background: 'rgba(8, 6, 15, 0.30)' }}>
               {activeScreen === 'dashboard' && <Dashboard onNavigate={(screen) => setActiveScreen(screen as Screen)} />}
               {activeScreen === 'leadgen' && <LeadGen showEngine={showEngine} onToggleEngine={() => setShowEngine(!showEngine)} />}
-              {activeScreen === 'outreach' && <Outreach />}
+              {activeScreen === 'outreach' && <Outreach showEngine={showOutreachEngine} />}
               {activeScreen === 'linkedin' && <LinkedInScreen />}
               {activeScreen === 'indeed' && <IndeedScreen showConfig={showIndeedConfig} />}
               {activeScreen === 'upwork' && <UpworkScreen />}
