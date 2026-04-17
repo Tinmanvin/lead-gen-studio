@@ -127,16 +127,16 @@ export default function LeadDetailModal({ lead, onClose, onSaved }: Props) {
       className="fixed inset-0 z-50 flex items-center justify-center p-6"
       style={{ background: 'transparent' }}
     >
-      {/* One big liquid-glass card — no white tint, just heavy blur for frosting */}
+      {/* One big liquid-glass card — max blur + heavy frost so background is fully obscured */}
       <div
         className="liquid-glass rounded-[24px] w-full overflow-hidden flex flex-col"
         style={{
           maxWidth: '1240px',
           maxHeight: '88vh',
-          background: 'rgba(255, 255, 255, 0.01)',
-          backdropFilter: 'blur(140px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(140px) saturate(180%)',
-          boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.18), 0 30px 90px rgba(0,0,0,0.45)',
+          background: 'rgba(255, 255, 255, 0.55)',
+          backdropFilter: 'blur(200px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(200px) saturate(180%)',
+          boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.4), 0 30px 90px rgba(0,0,0,0.45)',
         }}
       >
         <div
