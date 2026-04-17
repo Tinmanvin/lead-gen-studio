@@ -21,19 +21,16 @@ const LEAD_SELECT = `
   icebreaker, email_subject, email_body,
   linkedin_msg, whatsapp_msg, facebook_msg,
   copy_locked, demo_type, signals, tech_stack, has_chatbot, has_ssl,
-  created_at,
-  lead_scores(value_add_score, composite_score, touchpoint_tier, applicable_services)
+  created_at
 `;
 
 function mapRow(row: any): AllLead {
-  const s = Array.isArray(row.lead_scores) ? row.lead_scores[0] : row.lead_scores;
-  const { lead_scores: _, ...rest } = row;
   return {
-    ...rest,
-    value_add_score: s?.value_add_score ?? 0,
-    composite_score: s?.composite_score ?? 0,
-    touchpoint_tier: s?.touchpoint_tier ?? 'D',
-    applicable_services: s?.applicable_services ?? [],
+    ...row,
+    value_add_score: row.value_add_score ?? 0,
+    composite_score: row.composite_score ?? 0,
+    touchpoint_tier: row.touchpoint_tier ?? 'D',
+    applicable_services: row.applicable_services ?? [],
   };
 }
 
@@ -67,8 +64,8 @@ export function useAllLeads() {
       setTotal(count ?? 0);
       setHasMore((pageNum + 1) * PAGE_SIZE < (count ?? 0));
       setLeads(prev => (replace ? mapped : [...prev, ...mapped]));
-    } catch {
-      // maintain previous state on error
+    } catch (err) {
+      console.error('useAllLeads fetch error:', err);
     } finally {
       setLoading(false);
     }

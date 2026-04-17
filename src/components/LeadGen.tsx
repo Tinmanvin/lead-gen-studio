@@ -5,10 +5,13 @@ import { useAllLeads } from '@/hooks/useAllLeads';
 import { usePreviewBatch } from '@/hooks/usePreviewBatch';
 import { useHotLeads } from '@/hooks/useHotLeads';
 import { useLeadPipelineStats } from '@/hooks/useLeadPipelineStats';
+import { useGeoSettings } from '@/hooks/useSettings';
+import { useSourceToggles, SOURCE_LABELS, SOURCE_KEYS } from '@/hooks/useSourceToggles';
 import { useTriggerRun } from '@/hooks/useTriggerRun';
 import LeadDetailModal from './LeadDetailModal';
 import type { TriggerTask } from '@/hooks/useTriggerRun';
 import type { AllLead } from '@/hooks/useAllLeads';
+import type { SourceKey } from '@/hooks/useSourceToggles';
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
@@ -137,7 +140,46 @@ function StatTile({ label, value, dim = false }: { label: string; value: number;
   );
 }
 
+// ── Toggle row ────────────────────────────────────────────────────────────────
+
+function ToggleRow({ label, enabled, onToggle }: { label: string; enabled: boolean; onToggle: () => void }) {
+  return (
+    <div className="flex items-center justify-between py-1.5">
+      <span className="text-xs text-white/60">{label}</span>
+      <button onClick={onToggle}
+        className={`relative w-8 h-4 rounded-full transition-colors duration-200 ${enabled ? 'bg-purple-primary' : 'bg-white/15'}`}>
+        <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform duration-200 ${enabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
+      </button>
+    </div>
+  );
+}
+
+// ── Engine Room (with geo + source toggles) ───────────────────────────────────
+
+const AU_SOURCES: SourceKey[] = [
+  'source_google_maps_au',
+  'source_ahpra',
+  'source_mfaa',
+  'source_law_society_au',
+  'source_hipages',
+  'source_reia',
+];
+
+const UK_SOURCES: SourceKey[] = [
+  'source_google_maps_uk',
+  'source_companies_house',
+  'source_fca_register',
+  'source_law_society_uk',
+  'source_yell',
+  'source_checkatrade',
+  'source_trustpilot',
+  'source_opencorporates',
+];
+
 function EngineRoom({ onBack }: { onBack: () => void }) {
+  const geo = useGeoSettings();
+  const sources = useSourceToggles();
+
   return (
     <div className="h-full flex flex-col p-6 space-y-5 overflow-y-auto">
       <div className="flex items-center gap-3">
@@ -147,18 +189,74 @@ function EngineRoom({ onBack }: { onBack: () => void }) {
         </button>
         <h3 className="text-sm font-semibold text-white/80">Engine Room</h3>
       </div>
-      <div className="space-y-4">
-        <div>
-          <p className="text-xs text-white/40 uppercase tracking-wider mb-2">Schedule</p>
-          <div className="liquid-glass rounded-lg p-3 text-xs text-white/50">Daily scrape runs at 2am UTC · Enrichment follows automatically</div>
+
+      {/* Geography */}
+      <div>
+        <p className="text-xs text-white/40 uppercase tracking-wider mb-2">Geography</p>
+        <div className="liquid-glass rounded-lg px-3 py-1">
+          {geo.loading ? (
+            <p className="text-xs text-white/30 py-2">Loading…</p>
+          ) : (
+            <>
+              <ToggleRow label="Australia (AU)" enabled={geo.geoAU} onToggle={() => geo.toggle('geo_au_scrape', !geo.geoAU)} />
+              <ToggleRow label="United Kingdom (UK)" enabled={geo.geoUK} onToggle={() => geo.toggle('geo_uk_scrape', !geo.geoUK)} />
+            </>
+          )}
         </div>
-        <div>
-          <p className="text-xs text-white/40 uppercase tracking-wider mb-2">Pipeline</p>
-          <div className="space-y-1.5 text-xs text-white/50">
-            {['Google Maps AU + UK', 'Website scraping → signal detection', 'Exa owner + email enrichment', 'Scoring → icebreaker + copy gen'].map(s => (
-              <div key={s} className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-purple-primary/60" />{s}</div>
-            ))}
-          </div>
+      </div>
+
+      {/* AU Sources */}
+      <div>
+        <p className="text-xs text-white/40 uppercase tracking-wider mb-2">AU Data Sources</p>
+        <div className="liquid-glass rounded-lg px-3 py-1">
+          {sources.loading ? (
+            <p className="text-xs text-white/30 py-2">Loading…</p>
+          ) : AU_SOURCES.map(key => (
+            <ToggleRow
+              key={key}
+              label={SOURCE_LABELS[key]}
+              enabled={sources.toggles[key] ?? true}
+              onToggle={() => sources.toggle(key)}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* UK Sources */}
+      <div>
+        <p className="text-xs text-white/40 uppercase tracking-wider mb-2">UK Data Sources</p>
+        <div className="liquid-glass rounded-lg px-3 py-1">
+          {sources.loading ? (
+            <p className="text-xs text-white/30 py-2">Loading…</p>
+          ) : UK_SOURCES.map(key => (
+            <ToggleRow
+              key={key}
+              label={SOURCE_LABELS[key]}
+              enabled={sources.toggles[key] ?? true}
+              onToggle={() => sources.toggle(key)}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Schedule */}
+      <div>
+        <p className="text-xs text-white/40 uppercase tracking-wider mb-2">Schedule</p>
+        <div className="liquid-glass rounded-lg p-3 text-xs text-white/50">
+          Daily scrape runs at 2am UTC · Enrichment follows automatically
+        </div>
+      </div>
+
+      {/* Pipeline */}
+      <div>
+        <p className="text-xs text-white/40 uppercase tracking-wider mb-2">Pipeline</p>
+        <div className="space-y-1.5 text-xs text-white/50">
+          {['Google Maps AU + UK', 'Website scraping → signal detection', 'Exa owner + email enrichment', 'Scoring → icebreaker + copy gen'].map(s => (
+            <div key={s} className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-purple-primary/60 flex-shrink-0" />
+              {s}
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -169,9 +267,8 @@ function EngineRoom({ onBack }: { onBack: () => void }) {
 
 type Tab = 'all' | 'preview' | 'hot';
 
-export default function LeadGen({ showConfig }: { showConfig?: boolean }) {
+export default function LeadGen({ showEngine, onToggleEngine }: { showEngine: boolean; onToggleEngine: () => void }) {
   const [activeTab, setActiveTab] = useState<Tab>('all');
-  const [showEngine, setShowEngine] = useState(showConfig ?? false);
   const [selectedLead, setSelectedLead] = useState<AllLead | null>(null);
 
   const { stats } = useLeadPipelineStats();
@@ -295,7 +392,7 @@ export default function LeadGen({ showConfig }: { showConfig?: boolean }) {
             <RunBtn label="Run Scraper" state={scraperState} onClick={() => handleTrigger('main-full-run')} />
             <RunBtn label="Run Enrichment" state={enrichState} onClick={() => handleTrigger('main-enrich')} />
             <div className="flex-1" />
-            <button onClick={() => setShowEngine(true)}
+            <button onClick={onToggleEngine}
               className="text-xs px-3 py-1.5 rounded-button bg-white/8 hover:bg-white/12 text-white/60 transition-colors flex items-center gap-1.5">
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -308,7 +405,7 @@ export default function LeadGen({ showConfig }: { showConfig?: boolean }) {
 
         {/* ── BACK (Engine Room) ── */}
         <div className="h-full" style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', position: 'absolute', inset: 0 }}>
-          <EngineRoom onBack={() => setShowEngine(false)} />
+          <EngineRoom onBack={onToggleEngine} />
         </div>
       </div>
 

@@ -1,7 +1,7 @@
 /**
  * useHotLeads — top 10% of enriched leads ranked by value_add_score DESC
  * with demo_type as tiebreaker (COMPOUND > REDESIGN > WIDGET > EMAIL_ONLY).
- * Used in LeadGen "Hot Leads" tab and Outreach "Hot Leads" tab.
+ * Queries FROM lead_scores joining leads!inner — the reliable pattern.
  */
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -16,25 +16,26 @@ const DEMO_RANK: Record<string, number> = {
   EMAIL_ONLY: 1,
 };
 
-const LEAD_SELECT = `
-  id, company_name, website, city, niche, status, country,
-  dm_name, dm_title, dm_email, dm_linkedin_url, dm_facebook_url, dm_whatsapp,
-  icebreaker, email_subject, email_body,
-  linkedin_msg, whatsapp_msg, facebook_msg,
-  copy_locked, demo_type, signals, tech_stack, has_chatbot, has_ssl,
-  created_at,
-  lead_scores(value_add_score, composite_score, touchpoint_tier, applicable_services)
+const SCORE_SELECT = `
+  value_add_score, composite_score, touchpoint_tier, applicable_services,
+  leads!inner(
+    id, company_name, website, city, niche, status, country,
+    dm_name, dm_title, dm_email, dm_linkedin_url, dm_facebook_url, dm_whatsapp,
+    icebreaker, email_subject, email_body,
+    linkedin_msg, whatsapp_msg, facebook_msg,
+    copy_locked, demo_type, signals, tech_stack, has_chatbot, has_ssl,
+    created_at
+  )
 `;
 
 function mapRow(row: any): AllLead {
-  const s = Array.isArray(row.lead_scores) ? row.lead_scores[0] : row.lead_scores;
-  const { lead_scores: _, ...rest } = row;
+  const lead = Array.isArray(row.leads) ? row.leads[0] : row.leads;
   return {
-    ...rest,
-    value_add_score: s?.value_add_score ?? 0,
-    composite_score: s?.composite_score ?? 0,
-    touchpoint_tier: s?.touchpoint_tier ?? 'D',
-    applicable_services: s?.applicable_services ?? [],
+    ...lead,
+    value_add_score: row.value_add_score ?? 0,
+    composite_score: row.composite_score ?? 0,
+    touchpoint_tier: row.touchpoint_tier ?? 'D',
+    applicable_services: row.applicable_services ?? [],
   };
 }
 
@@ -55,22 +56,22 @@ export function useHotLeads(cap = 500) {
 
       const total = count ?? 0;
       const hotLimit = Math.min(cap, Math.max(10, Math.ceil(total * 0.1)));
-
       setTotalEnriched(total);
 
-      // Fetch top hotLimit by value_add_score DESC (tiebreak by demo_type in JS)
+      // Query FROM lead_scores joining leads — reliable join pattern
       const { data, error } = await supabase
-        .from('leads')
-        .select(LEAD_SELECT)
-        .not('dm_email', 'is', null)
-        .neq('status', 'outreached')
-        .not('lead_scores', 'is', null)
-        .order('company_name', { ascending: true }) // secondary stable sort
-        .limit(hotLimit * 2); // over-fetch to allow tiebreak sort
+        .from('lead_scores')
+        .select(SCORE_SELECT)
+        .not('value_add_score', 'is', null)
+        .order('value_add_score', { ascending: false })
+        .limit(hotLimit * 2);
 
       if (error) throw error;
 
-      const mapped = (data ?? []).map(mapRow);
+      const mapped = (data ?? [])
+        .map(mapRow)
+        // filter out outreached or no-email leads after join
+        .filter(l => l.dm_email && l.status !== 'outreached');
 
       // Sort: value_add_score DESC, then demo_type rank DESC
       mapped.sort((a, b) => {
@@ -80,6 +81,8 @@ export function useHotLeads(cap = 500) {
       });
 
       setLeads(mapped.slice(0, hotLimit));
+    } catch (err) {
+      console.error('useHotLeads fetch error:', err);
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { usePreviewBatch } from '@/hooks/usePreviewBatch';
 import { useHotLeads } from '@/hooks/useHotLeads';
@@ -221,9 +221,14 @@ function OutreachEngine({ onBack }: { onBack: () => void }) {
 
 type Tab = 'mass' | 'hot';
 
-export default function Outreach({ showConfig }: { showConfig?: boolean }) {
+export default function Outreach({ showEngine: showEngineProp = false }: { showEngine?: boolean }) {
   const [activeTab, setActiveTab] = useState<Tab>('mass');
-  const [showEngine, setShowEngine] = useState(showConfig ?? false);
+  const [showEngine, setShowEngine] = useState(showEngineProp);
+
+  // Sync when parent (Index.tsx top-bar button) toggles showEngine prop
+  useEffect(() => {
+    setShowEngine(showEngineProp);
+  }, [showEngineProp]);
   const [selectedLead, setSelectedLead] = useState<AllLead | null>(null);
 
   const preview = usePreviewBatch();
