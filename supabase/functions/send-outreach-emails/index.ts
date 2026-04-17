@@ -69,11 +69,21 @@ Deno.serve(async (req) => {
     // Parse optional body params
     const body = await req.json().catch(() => ({}));
     const excludeLeadIds: string[] = body.excludeLeadIds ?? [];
+    const leadIds: string[] | null = body.leadIds ?? null; // if set, only send these specific leads
 
-    // 1. Fetch scored leads with email ready (450 cap = 3 accounts × 150)
-    const rawLeads = await dbGet(
-      "leads?status=eq.scored&dm_email=not.is.null&email_body=not.is.null&select=id,company_name,dm_email,email_subject,email_body&limit=450"
-    );
+    let rawLeads;
+    if (leadIds && leadIds.length > 0) {
+      // Selected mode — only fetch the specific lead IDs passed from the UI
+      const idList = leadIds.map((id: string) => `"${id}"`).join(",");
+      rawLeads = await dbGet(
+        `leads?id=in.(${idList})&dm_email=not.is.null&email_body=not.is.null&select=id,company_name,dm_email,email_subject,email_body`
+      );
+    } else {
+      // Batch mode — fetch all scored leads (450 cap = 3 accounts × 150)
+      rawLeads = await dbGet(
+        "leads?status=eq.scored&dm_email=not.is.null&email_body=not.is.null&select=id,company_name,dm_email,email_subject,email_body&limit=450"
+      );
+    }
 
     // Exclude hot leads pool to avoid duplicate outreach
     const leads = Array.isArray(rawLeads)
