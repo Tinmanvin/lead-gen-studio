@@ -13,6 +13,79 @@ import type { TriggerTask } from '@/hooks/useTriggerRun';
 import type { AllLead } from '@/hooks/useAllLeads';
 import type { SourceKey } from '@/hooks/useSourceToggles';
 
+// ── Mock fallback cards (shown only when preview batch is empty so the modal is clickable) ──
+const MOCK_PREVIEW_LEADS: AllLead[] = [
+  {
+    id: 'mock-1',
+    company_name: 'Emergency Plumber South-East London',
+    dm_name: 'Paris Clark',
+    dm_email: 'paris@emergencyplumber24hr.uk',
+    dm_title: 'Owner',
+    website: 'emergencyplumber24hr.uk',
+    niche: 'plumber',
+    city: 'London',
+    demo_type: 'WIDGET',
+    icebreaker: "Noticed you're getting inquiries through your site but there's no way for customers to actually book online — must create a few extra phone calls during your busy days.",
+    email_subject: 'Quick question about Emergency Plumber South-East London',
+    email_body: "Hi Paris,\n\nNoticed your site doesn't have a way for customers to book a slot directly — that's likely sending after-hours leads to voicemail.\n\nI build small booking widgets that drop straight onto plumber sites and start capturing those calls automatically. Worth a 10-minute chat?",
+    linkedin_msg: 'Hi Paris, noticed your service area expanded recently — would love to share a quick idea for capturing more after-hours bookings.',
+    whatsapp_msg: 'Hi Paris, spotted something interesting about Emergency Plumber South-East London. Mind if I share a quick thought?',
+    facebook_msg: 'Hi Paris! I came across Emergency Plumber South-East London and noticed something worth mentioning. Happy to connect?',
+    status: 'scored',
+    copy_locked: false,
+    value_add_score: 5,
+    composite_score: 78,
+    touchpoint_tier: 'A',
+    applicable_services: ['booking_widget', 'after_hours_capture'],
+  } as AllLead,
+  {
+    id: 'mock-2',
+    company_name: 'PGDS Garage Doors Repairs of Perth',
+    dm_name: 'Jane Doe',
+    dm_email: 'info@garagedoorservicesperth.com.au',
+    dm_title: 'Director',
+    website: 'garagedoorservicesperth.com.au',
+    niche: 'mechanic',
+    city: 'Perth',
+    demo_type: 'COMPOUND',
+    icebreaker: "Saw you just listed some new service offerings on your site — curious if you're getting inquiries through there or mostly phone calls still?",
+    email_subject: 'Quick question about PGDS Garage Doors Repairs of Perth',
+    email_body: "Hi Jane,\n\nSaw you just listed some new service offerings on your site — curious if you're getting inquiries through there or mostly phone calls still?\n\nI work with mechanic businesses on AI-powered systems that help capture and convert more leads. Worth a 10-minute chat?",
+    linkedin_msg: 'Hi Jane, I noticed your new listing at PGDS Garage Doors Repairs of Perth. Would love to connect and share something relevant.',
+    whatsapp_msg: 'Hi Jane, spotted something interesting about PGDS Garage Doors Repairs of Perth. Mind if I share a quick thought?',
+    facebook_msg: 'Hi Jane! I came across PGDS Garage Doors Repairs of Perth and noticed something worth mentioning. Happy to connect?',
+    status: 'scored',
+    copy_locked: false,
+    value_add_score: 6,
+    composite_score: 84,
+    touchpoint_tier: 'A',
+    applicable_services: ['ai_lead_capture', 'site_redesign'],
+  } as AllLead,
+  {
+    id: 'mock-3',
+    company_name: 'Realestate 88',
+    dm_name: 'Peter Wright',
+    dm_email: 'info@re88.com.au',
+    dm_title: 'Principal Agent',
+    website: 're88.com.au',
+    niche: 'real estate agent',
+    city: 'Sydney',
+    demo_type: 'WIDGET',
+    icebreaker: "Noticed you're still getting inquiries after hours but your site doesn't have a way for people to book a time — curious if that's costing you leads.",
+    email_subject: 'Quick question about Realestate 88',
+    email_body: "Hi Peter,\n\nNoticed you're still getting inquiries after hours but your site doesn't have a way for people to book a viewing — curious if that's costing you leads.\n\nI build small booking widgets for property sites that capture and qualify those after-hours visitors automatically. Worth a 10-minute chat?",
+    linkedin_msg: 'Hi Peter, noticed Realestate 88 has been busy recently — would love to share a quick idea for capturing more after-hours viewings.',
+    whatsapp_msg: 'Hi Peter, spotted something interesting about Realestate 88. Mind if I share a quick thought?',
+    facebook_msg: 'Hi Peter! I came across Realestate 88 and noticed something worth mentioning. Happy to connect?',
+    status: 'scored',
+    copy_locked: false,
+    value_add_score: 4,
+    composite_score: 71,
+    touchpoint_tier: 'B',
+    applicable_services: ['booking_widget'],
+  } as AllLead,
+];
+
 // ── CSS content guard ─────────────────────────────────────────────────────────
 
 function isCssContent(text?: string | null): boolean {
@@ -434,7 +507,9 @@ export default function LeadGen({ showEngine, onToggleEngine }: { showEngine: bo
                 {preview.loading
                   ? <div className="text-center py-8 text-white/30 text-sm">Loading preview…</div>
                   : <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
-                      {preview.leads.map(lead => <LeadCard key={lead.id} lead={lead} onClick={() => setSelectedLead(lead)} />)}
+                      {(preview.leads.length > 0 ? preview.leads : MOCK_PREVIEW_LEADS).map(lead => (
+                        <LeadCard key={lead.id} lead={lead} onClick={() => setSelectedLead(lead)} />
+                      ))}
                     </div>}
               </div>
             )}
