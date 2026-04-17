@@ -136,8 +136,8 @@ export default function LeadDetailModal({ lead, onClose, onSaved }: Props) {
         className="liquid-glass w-full rounded-2xl"
         style={{
           maxWidth: 'min(1160px, 92vw)',
-          background: 'rgba(28, 12, 60, 0.95)',
-          boxShadow: '0 0 140px rgba(123,57,252,0.55), 0 0 60px rgba(123,57,252,0.25), 0 24px 60px rgba(0,0,0,0.3)',
+          background: 'rgba(38, 16, 80, 0.97)',
+          boxShadow: '0 0 40px rgba(123,57,252,0.3), 0 8px 32px rgba(0,0,0,0.4)',
           maxHeight: '78vh',
         } as React.CSSProperties}
       >
