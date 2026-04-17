@@ -172,11 +172,11 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (screen: string
                   </td>
                   <td className="py-3">
                     <span className="text-xs px-2 py-0.5 rounded-tag bg-purple-primary/10 text-purple-primary/80">
-                      {lead.score?.demo_type ?? '—'}
+                      {lead.demo_type ?? '—'}
                     </span>
                   </td>
                   <td className="py-3 text-center">
-                    <ScoreRing score={Math.min(lead.score?.total_score ?? 0, 100)} />
+                    <ScoreRing score={Math.min(lead.score?.composite_score ?? 0, 100)} />
                   </td>
                   <td className="py-3 text-right">
                     <span className={`text-xs font-medium px-2.5 py-1 rounded-tag ${lead.status === 'booked' ? 'bg-purple-primary/30 text-purple-primary' : lead.status === 'replied' ? 'bg-purple-primary/15 text-purple-primary/80' : 'bg-white/[0.06] text-white/50'}`}>
