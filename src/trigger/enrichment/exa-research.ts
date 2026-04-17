@@ -199,6 +199,13 @@ export const exaResearch = schemaTask({
     if (leadResult.error || !leadResult.data) return { success: false };
 
     const lead = leadResult.data;
+
+    // Respect manual edits — never overwrite locked copy
+    if ((lead as Record<string, unknown>).copy_locked) {
+      logger.log(`Skipping Exa research for ${lead.company_name} — copy is locked`);
+      return { success: false, reason: "copy_locked" };
+    }
+
     const score = scoreResult.data;
     const signals = (signalsResult.data ?? []).map((s) => s.signal_type);
 

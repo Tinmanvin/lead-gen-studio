@@ -30,6 +30,7 @@ export interface Lead {
   has_chatbot?: boolean;
   has_ssl?: boolean;
   tech_stack?: string[];
+  copy_locked?: boolean;
   created_at: string;
 }
 

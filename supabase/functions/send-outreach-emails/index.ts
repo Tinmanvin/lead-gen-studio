@@ -66,13 +66,22 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    // 1. Fetch scored leads with email ready
-    const leads = await dbGet(
-      "leads?status=eq.scored&dm_email=not.is.null&email_body=not.is.null&select=id,company_name,dm_email,email_subject,email_body&limit=100"
+    // Parse optional body params
+    const body = await req.json().catch(() => ({}));
+    const excludeLeadIds: string[] = body.excludeLeadIds ?? [];
+
+    // 1. Fetch scored leads with email ready (450 cap = 3 accounts × 150)
+    const rawLeads = await dbGet(
+      "leads?status=eq.scored&dm_email=not.is.null&email_body=not.is.null&select=id,company_name,dm_email,email_subject,email_body&limit=450"
     );
 
-    if (!Array.isArray(leads) || leads.length === 0) {
-      return new Response(JSON.stringify({ success: true, sent: 0, reason: "no_scored_leads" }), {
+    // Exclude hot leads pool to avoid duplicate outreach
+    const leads = Array.isArray(rawLeads)
+      ? rawLeads.filter((l: { id: string }) => !excludeLeadIds.includes(l.id))
+      : [];
+
+    if (leads.length === 0) {
+      return new Response(JSON.stringify({ success: true, sent: 0, reason: "no_eligible_leads" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
