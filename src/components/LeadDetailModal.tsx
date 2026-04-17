@@ -123,16 +123,20 @@ export default function LeadDetailModal({ lead, onClose, onSaved }: Props) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.12)' } as React.CSSProperties}
+      style={{
+        background: 'rgba(8, 5, 18, 0.76)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+      } as React.CSSProperties}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      {/* Panel — pure liquid-glass: rgba(255,255,255,0.01) + blur(4px) + gradient border.
-          No background override. The purple app ambient bleeds straight through. */}
+      {/* Panel — pure liquid-glass sitting on a blurred dark-purple backdrop.
+          The backdrop is the "desktop" the glass looks through — purple, not black. */}
       <div
         className="liquid-glass w-full rounded-2xl"
         style={{
           maxWidth: 'min(1160px, 92vw)',
-          boxShadow: '0 0 120px rgba(123,57,252,0.4), 0 0 50px rgba(123,57,252,0.18), inset 0 1px 1px rgba(255,255,255,0.1)',
+          boxShadow: '0 0 140px rgba(123,57,252,0.55), 0 0 60px rgba(123,57,252,0.25), 0 24px 60px rgba(0,0,0,0.3)',
           maxHeight: '78vh',
         } as React.CSSProperties}
       >
