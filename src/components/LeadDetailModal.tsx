@@ -125,7 +125,11 @@ export default function LeadDetailModal({ lead, onClose, onSaved }: Props) {
     <div
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
       className="fixed inset-0 z-50 flex items-center justify-center p-6"
-      style={{ background: 'rgba(0,0,0,0.45)' }}
+      style={{
+        background: 'transparent',
+        backdropFilter: 'blur(24px) saturate(140%)',
+        WebkitBackdropFilter: 'blur(24px) saturate(140%)',
+      }}
     >
       {/* One big liquid-glass card — same class as the small cards, just bigger */}
       <div
