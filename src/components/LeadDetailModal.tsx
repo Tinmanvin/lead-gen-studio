@@ -124,9 +124,9 @@ export default function LeadDetailModal({ lead, onClose, onSaved }: Props) {
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{
-        background: 'rgba(8, 5, 18, 0.82)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
+        background: 'rgba(8, 5, 18, 0.55)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
       } as React.CSSProperties}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
