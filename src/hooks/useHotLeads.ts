@@ -16,16 +16,10 @@ const DEMO_RANK: Record<string, number> = {
   EMAIL_ONLY: 1,
 };
 
+// Wildcard on leads side — avoids PostgREST 400 from any missing optional column
 const SCORE_SELECT = `
   value_add_score, composite_score, touchpoint_tier, applicable_services,
-  leads!inner(
-    id, company_name, website, city, niche, status, country,
-    dm_name, dm_title, dm_email, dm_linkedin_url, dm_facebook_url, dm_whatsapp,
-    icebreaker, email_subject, email_body,
-    linkedin_msg, whatsapp_msg, facebook_msg,
-    copy_locked, demo_type, signals, tech_stack, has_chatbot, has_ssl,
-    created_at
-  )
+  leads!inner(*)
 `;
 
 function mapRow(row: any): AllLead {

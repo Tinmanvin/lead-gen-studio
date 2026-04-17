@@ -9,14 +9,8 @@ import type { AllLead } from './useAllLeads';
 
 const BATCH_SIZE = 12;
 
-const LEAD_SELECT = `
-  id, company_name, website, city, niche, status, country,
-  dm_name, dm_title, dm_email, dm_linkedin_url, dm_facebook_url, dm_whatsapp,
-  icebreaker, email_subject, email_body,
-  linkedin_msg, whatsapp_msg, facebook_msg,
-  copy_locked, demo_type, signals, tech_stack, has_chatbot, has_ssl,
-  created_at
-`;
+// Use wildcard — avoids PostgREST 400 if any optional column hasn't been migrated yet
+const LEAD_SELECT = '*';
 
 function mapRow(row: any): AllLead {
   return {

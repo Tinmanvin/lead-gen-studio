@@ -147,8 +147,11 @@ function ToggleRow({ label, enabled, onToggle }: { label: string; enabled: boole
     <div className="flex items-center justify-between py-1.5">
       <span className="text-xs text-white/60">{label}</span>
       <button onClick={onToggle}
-        className={`relative w-8 h-4 rounded-full transition-colors duration-200 ${enabled ? 'bg-purple-primary' : 'bg-white/15'}`}>
-        <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform duration-200 ${enabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
+        className={`relative w-9 h-5 rounded-full transition-colors duration-200 flex-shrink-0 ${enabled ? 'bg-purple-primary' : 'bg-white/20'}`}>
+        <span
+          className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-all duration-200"
+          style={{ transform: enabled ? 'translateX(16px)' : 'translateX(0px)' }}
+        />
       </button>
     </div>
   );
