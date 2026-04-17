@@ -38,15 +38,15 @@ function Field({
   multiline?: boolean;
   rows?: number;
 }) {
-  const base =
-    'w-full bg-white/[0.06] border border-white/[0.1] rounded-lg px-3 py-2.5 text-sm text-white/90 placeholder-white/25 focus:outline-none focus:border-purple-400/50 resize-none transition-colors leading-relaxed';
   return (
     <div className="space-y-1.5">
-      <label className="text-xs text-white/35 tracking-wide">{label}</label>
+      <label style={{ fontSize: '10px', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600 }}>
+        {label}
+      </label>
       {multiline ? (
-        <textarea className={base} rows={rows} value={value} onChange={e => onChange(e.target.value)} />
+        <textarea className="modal-field" rows={rows} value={value} onChange={e => onChange(e.target.value)} />
       ) : (
-        <input className={base} value={value} onChange={e => onChange(e.target.value)} />
+        <input className="modal-field" value={value} onChange={e => onChange(e.target.value)} />
       )}
     </div>
   );
@@ -124,28 +124,28 @@ export default function LeadDetailModal({ lead, onClose, onSaved }: Props) {
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{
-        background: 'rgba(8, 5, 18, 0.76)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
+        background: 'rgba(8, 5, 18, 0.82)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
       } as React.CSSProperties}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      {/* Panel — pure liquid-glass sitting on a blurred dark-purple backdrop.
-          The backdrop is the "desktop" the glass looks through — purple, not black. */}
+      {/* Modal panel — liquid glass */}
       <div
-        className="liquid-glass w-full rounded-2xl"
+        className="liquid-glass-modal rounded-2xl w-full"
         style={{
           maxWidth: 'min(1160px, 92vw)',
-          boxShadow: '0 0 140px rgba(123,57,252,0.55), 0 0 60px rgba(123,57,252,0.25), 0 24px 60px rgba(0,0,0,0.3)',
-          maxHeight: '78vh',
+          maxHeight: '82vh',
         } as React.CSSProperties}
       >
-        {/* Scrollable inner — overflow:hidden on outer clips it correctly */}
-        <div className="overflow-y-auto" style={{ maxHeight: '78vh' }}>
+        {/* Scrollable inner */}
+        <div className="overflow-y-auto" style={{ maxHeight: '82vh' }}>
 
           {/* ── Header ── */}
-          <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-4"
-            style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+          <div
+            className="flex items-start justify-between gap-4 px-6 pt-5 pb-4"
+            style={{ borderBottom: '1px solid rgba(255,255,255,0.09)' }}
+          >
             <div className="flex items-center gap-4 min-w-0">
               <ScoreRing score={score} size={48} />
               <div className="min-w-0">
@@ -173,8 +173,11 @@ export default function LeadDetailModal({ lead, onClose, onSaved }: Props) {
                 </div>
               </div>
             </div>
-            <button onClick={onClose}
-              className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-white/[0.06] hover:bg-white/[0.12] text-white/50 hover:text-white transition-all duration-150">
+            <button
+              onClick={onClose}
+              className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-white/50 hover:text-white transition-all duration-150"
+              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.14)' }}
+            >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -182,8 +185,10 @@ export default function LeadDetailModal({ lead, onClose, onSaved }: Props) {
           </div>
 
           {/* ── Contact row ── */}
-          <div className="px-6 py-3 flex flex-wrap items-center gap-x-5 gap-y-1.5"
-            style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <div
+            className="px-6 py-3 flex flex-wrap items-center gap-x-5 gap-y-1.5"
+            style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}
+          >
             {lead.dm_name && (
               <div className="flex items-center gap-1.5">
                 <svg className="w-3.5 h-3.5 text-white/25" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -202,9 +207,11 @@ export default function LeadDetailModal({ lead, onClose, onSaved }: Props) {
               </div>
             )}
             {lead.website && (
-              <a href={lead.website.startsWith('http') ? lead.website : `https://${lead.website}`}
+              <a
+                href={lead.website.startsWith('http') ? lead.website : `https://${lead.website}`}
                 target="_blank" rel="noreferrer"
-                className="flex items-center gap-1.5 text-sm text-white/35 hover:text-white/60 transition-colors">
+                className="flex items-center gap-1.5 text-sm text-white/35 hover:text-white/60 transition-colors"
+              >
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>
@@ -215,8 +222,10 @@ export default function LeadDetailModal({ lead, onClose, onSaved }: Props) {
 
           {/* ── Services ── */}
           {(lead.applicable_services?.length ?? 0) > 0 && (
-            <div className="px-6 py-3 flex flex-wrap gap-1.5"
-              style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <div
+              className="px-6 py-3 flex flex-wrap gap-1.5"
+              style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}
+            >
               {lead.applicable_services.map(s => (
                 <span key={s} className="text-xs px-2.5 py-1 rounded-full bg-purple-500/15 border border-purple-400/20 text-purple-300">
                   {s.replace(/_/g, ' ')}
@@ -225,46 +234,52 @@ export default function LeadDetailModal({ lead, onClose, onSaved }: Props) {
             </div>
           )}
 
-          {/* ── Edit fields: 2-col ── */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-5 px-6 py-5">
+          {/* ── Body: 2-col glass sections ── */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-5">
 
-            {/* Left: icebreaker + channel messages */}
-            <div className="space-y-4">
-              <div>
-                <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">Social Copy</p>
-                <div className="space-y-4">
-                  <Field label="Icebreaker" value={icebreaker} onChange={setIcebreaker} multiline rows={3} />
-                  <Field label="LinkedIn message" value={linkedinMsg} onChange={setLinkedinMsg} multiline rows={3} />
-                  <Field label="WhatsApp message" value={whatsappMsg} onChange={setWhatsappMsg} multiline rows={3} />
-                  <Field label="Facebook message" value={facebookMsg} onChange={setFacebookMsg} multiline rows={3} />
-                </div>
-              </div>
+            {/* Left: Social Copy */}
+            <div className="glass-section-panel space-y-4">
+              <p style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '4px' }}>
+                Social Copy
+              </p>
+              <Field label="Icebreaker" value={icebreaker} onChange={setIcebreaker} multiline rows={3} />
+              <Field label="LinkedIn message" value={linkedinMsg} onChange={setLinkedinMsg} multiline rows={3} />
+              <Field label="WhatsApp message" value={whatsappMsg} onChange={setWhatsappMsg} multiline rows={3} />
+              <Field label="Facebook message" value={facebookMsg} onChange={setFacebookMsg} multiline rows={3} />
             </div>
 
-            {/* Right: email copy */}
-            <div className="space-y-4">
-              <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">Email Copy</p>
+            {/* Right: Email Copy */}
+            <div className="glass-section-panel space-y-4">
+              <p style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '4px' }}>
+                Email Copy
+              </p>
               <Field label="Email subject" value={emailSubject} onChange={setEmailSubject} />
-              <Field label="Email body" value={emailBody} onChange={setEmailBody} multiline rows={14} />
+              <Field label="Email body" value={emailBody} onChange={setEmailBody} multiline rows={16} />
             </div>
+
           </div>
 
-          {/* ── Actions footer ── */}
-          <div className="flex items-center justify-end gap-3 px-6 pb-6 pt-2"
-            style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-            <button onClick={onClose}
-              className="px-4 py-2 rounded-button text-sm text-white/45 hover:text-white/75 transition-colors">
+          {/* ── Footer ── */}
+          <div
+            className="flex items-center justify-end gap-3 px-6 pb-5 pt-3"
+            style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}
+          >
+            <button
+              onClick={onClose}
+              className="px-4 py-2 rounded-lg text-sm text-white/45 hover:text-white/75 transition-colors"
+            >
               Cancel
             </button>
             <button
               onClick={handleSave}
               disabled={saving}
-              className={`px-5 py-2 rounded-button text-sm font-semibold transition-all duration-200 flex items-center gap-2
+              className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-2
                 ${saved
                   ? 'bg-green-500/80 text-white'
                   : isDirty
                   ? 'bg-purple-primary hover:bg-purple-primary/90 text-white'
-                  : 'bg-white/8 text-white/35 cursor-default'}`}
+                  : 'text-white/35 cursor-default'}`}
+              style={!saved && !isDirty ? { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' } : {}}
             >
               {saving && (
                 <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">

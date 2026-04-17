@@ -93,6 +93,59 @@
   z-index: 1;
 }
 
+/* Stronger liquid glass for modal panel */
+.liquid-glass-modal {
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(48px) saturate(160%);
+  -webkit-backdrop-filter: blur(48px) saturate(160%);
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  border-top-color: rgba(255, 255, 255, 0.32);
+  box-shadow:
+    0 0 140px rgba(123, 57, 252, 0.55),
+    0 0 60px rgba(123, 57, 252, 0.25),
+    0 24px 60px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Inner section panels inside the modal */
+.glass-section-panel {
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-top-color: rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+/* Input fields inside modal */
+.modal-field {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.9);
+  font-family: var(--font-sans);
+  resize: none;
+  transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+  line-height: 1.55;
+}
+
+.modal-field::placeholder {
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.modal-field:focus {
+  outline: none;
+  border-color: rgba(123, 57, 252, 0.65);
+  background: rgba(123, 57, 252, 0.06);
+  box-shadow: 0 0 0 3px rgba(123, 57, 252, 0.12);
+}
+
 /* App container */
 .app-container {
   position: fixed;
