@@ -81,7 +81,7 @@ function LeadCard({ lead, onClick }: { lead: AllLead; onClick: () => void }) {
   const safeIcebreaker = !isCssContent(lead.icebreaker) ? lead.icebreaker : null;
   return (
     <button onClick={onClick}
-      className={`liquid-glass rounded-card p-4 text-left w-full hover:-translate-y-0.5 transition-all duration-200 flex flex-col ${accentClass(lead.value_add_score, lead.demo_type)}`}>
+      className="liquid-glass rounded-card p-4 text-left w-full hover:-translate-y-0.5 transition-all duration-200 flex flex-col accent-hot">
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
@@ -155,9 +155,6 @@ function LeadRow({ lead, isExpanded, onToggle, onEdit }: {
           </div>
         </div>
         <div className="flex items-center gap-3 text-xs flex-shrink-0 ml-4">
-          {lead.dm_email && (
-            <span className="text-white/40 font-mono hidden md:block max-w-[160px] truncate">{lead.dm_email}</span>
-          )}
           {lead.copy_locked && (
             <svg className="w-3.5 h-3.5 text-amber-400/60" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
