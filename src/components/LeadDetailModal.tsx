@@ -127,19 +127,22 @@ export default function LeadDetailModal({ lead, onClose, onSaved }: Props) {
       className="fixed inset-0 z-50 flex items-center justify-center p-6"
       style={{ background: 'transparent' }}
     >
-      {/* One big liquid-glass card — frosted, no color tint */}
+      {/* One big liquid-glass card — heavy frosting */}
       <div
         className="liquid-glass rounded-[24px] w-full overflow-hidden flex flex-col"
         style={{
           maxWidth: '1240px',
           maxHeight: '88vh',
-          background: 'rgba(255, 255, 255, 0.08)',
-          backdropFilter: 'blur(48px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(48px) saturate(180%)',
-          boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.18), 0 30px 90px rgba(0,0,0,0.45)',
+          background: 'rgba(255, 255, 255, 0.22)',
+          backdropFilter: 'blur(80px) saturate(200%)',
+          WebkitBackdropFilter: 'blur(80px) saturate(200%)',
+          boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.25), 0 30px 90px rgba(0,0,0,0.45)',
         }}
       >
-        <div className="relative z-10 flex flex-col overflow-y-auto" style={{ maxHeight: '88vh' }}>
+        <div
+          className="relative z-10 flex flex-col overflow-y-auto no-scrollbar"
+          style={{ maxHeight: '88vh' }}
+        >
 
           {/* Header */}
           <div className="flex items-start justify-between gap-4 px-8 pt-7 pb-5">
