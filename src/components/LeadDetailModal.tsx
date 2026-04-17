@@ -123,17 +123,20 @@ export default function LeadDetailModal({ lead, onClose, onSaved }: Props) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' } as React.CSSProperties}
+      style={{ background: 'rgba(0,0,0,0.2)' } as React.CSSProperties}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      {/* Panel — liquid-glass handles the gradient border; inline styles fix visibility */}
+      {/* Panel — blurs directly against the live app background (same as cards),
+          liquid-glass::before handles the gradient border ring */}
       <div
-        className="liquid-glass w-full max-w-4xl rounded-2xl"
+        className="liquid-glass w-full max-w-5xl rounded-2xl"
         style={{
-          background: 'rgba(11, 8, 22, 0.90)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          boxShadow: '0 0 80px rgba(123,57,252,0.22), 0 32px 80px rgba(0,0,0,0.55)',
+          background: 'rgba(18, 14, 34, 0.78)',
+          backdropFilter: 'blur(32px)',
+          WebkitBackdropFilter: 'blur(32px)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderTop: '1px solid rgba(255,255,255,0.2)',
+          boxShadow: '0 0 100px rgba(123,57,252,0.3), 0 0 40px rgba(123,57,252,0.12), 0 32px 80px rgba(0,0,0,0.4)',
           maxHeight: '88vh',
         } as React.CSSProperties}
       >
