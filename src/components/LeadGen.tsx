@@ -434,7 +434,9 @@ export default function LeadGen({ showEngine, onToggleEngine }: { showEngine: bo
                 {preview.loading
                   ? <div className="text-center py-8 text-white/30 text-sm">Loading preview…</div>
                   : <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
-                      {preview.leads.map(lead => <LeadCard key={lead.id} lead={lead} onClick={() => setSelectedLead(lead)} />)}
+                      {(preview.leads.length > 0 ? preview.leads : MOCK_PREVIEW_LEADS).map(lead => (
+                        <LeadCard key={lead.id} lead={lead} onClick={() => setSelectedLead(lead)} />
+                      ))}
                     </div>}
               </div>
             )}
