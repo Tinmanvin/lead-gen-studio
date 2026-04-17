@@ -108,36 +108,8 @@
     0 32px 80px rgba(0, 0, 0, 0.6);
 }
 
-/* Purple gradient bg — what the glass blurs against */
 .modal-bg {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  background: linear-gradient(
-    135deg,
-    #2d0a6e 0%,
-    #0f0630 35%,
-    #3a0e8a 65%,
-    #1a0442 100%
-  );
-}
-.modal-bg::before {
-  content: '';
-  position: absolute;
-  top: -25%;
-  right: -5%;
-  width: 55%;
-  height: 75%;
-  background: radial-gradient(circle, rgba(123, 57, 252, 0.65) 0%, transparent 65%);
-}
-.modal-bg::after {
-  content: '';
-  position: absolute;
-  bottom: -15%;
-  left: 15%;
-  width: 45%;
-  height: 55%;
-  background: radial-gradient(circle, rgba(160, 80, 255, 0.45) 0%, transparent 65%);
+  display: none;
 }
 
 /* Glass panel — sits on top of the gradient bg and blurs it */
