@@ -93,24 +93,6 @@
   z-index: 1;
 }
 
-/* Liquid glass for existing app components — unchanged */
-.liquid-glass-modal {
-  background: rgba(255, 255, 255, 0.07);
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
-  border: 1.5px solid rgba(255, 255, 255, 0.18);
-  border-top-color: rgba(255, 255, 255, 0.32);
-  box-shadow: 0 0 120px rgba(123, 57, 252, 0.5), 0 24px 60px rgba(0, 0, 0, 0.4);
-  position: relative;
-  overflow: hidden;
-}
-.glass-section-panel {
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 14px;
-  padding: 16px;
-}
-
 /* App container */
 .app-container {
   position: fixed;
@@ -141,10 +123,6 @@
 .nav-chrome.expanded {
   background: rgba(20, 15, 40, 0.25);
 }
-
-/* Hide scrollbar utility */
-.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
-.no-scrollbar::-webkit-scrollbar { display: none; }
 
 /* Scrollbar */
 ::-webkit-scrollbar {
