@@ -123,25 +123,27 @@ export default function LeadDetailModal({ lead, onClose, onSaved }: Props) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.2)' } as React.CSSProperties}
+      style={{ background: 'rgba(0,0,0,0.12)' } as React.CSSProperties}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      {/* Panel — blurs directly against the live app background (same as cards),
-          liquid-glass::before handles the gradient border ring */}
+      {/* Panel — thin, mostly-transparent glass so the purple app ambient shines through.
+          backdrop-filter:blur(44px) on the panel itself creates the frosted effect.
+          liquid-glass::before adds the gradient border ring. */}
       <div
-        className="liquid-glass w-full max-w-5xl rounded-2xl"
+        className="liquid-glass w-full rounded-2xl"
         style={{
-          background: 'rgba(18, 14, 34, 0.78)',
-          backdropFilter: 'blur(32px)',
-          WebkitBackdropFilter: 'blur(32px)',
-          border: '1px solid rgba(255,255,255,0.1)',
-          borderTop: '1px solid rgba(255,255,255,0.2)',
-          boxShadow: '0 0 100px rgba(123,57,252,0.3), 0 0 40px rgba(123,57,252,0.12), 0 32px 80px rgba(0,0,0,0.4)',
-          maxHeight: '88vh',
+          maxWidth: 'min(1160px, 92vw)',
+          background: 'rgba(12, 8, 24, 0.42)',
+          backdropFilter: 'blur(44px)',
+          WebkitBackdropFilter: 'blur(44px)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderTop: '1px solid rgba(255,255,255,0.18)',
+          boxShadow: '0 0 120px rgba(123,57,252,0.35), 0 0 50px rgba(123,57,252,0.15), 0 24px 60px rgba(0,0,0,0.35)',
+          maxHeight: '78vh',
         } as React.CSSProperties}
       >
         {/* Scrollable inner — overflow:hidden on outer clips it correctly */}
-        <div className="overflow-y-auto" style={{ maxHeight: '88vh' }}>
+        <div className="overflow-y-auto" style={{ maxHeight: '78vh' }}>
 
           {/* ── Header ── */}
           <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-4"
