@@ -93,61 +93,114 @@
   z-index: 1;
 }
 
-/* Stronger liquid glass for modal panel */
-.liquid-glass-modal {
-  background: linear-gradient(
-    135deg,
-    rgba(123, 57, 252, 0.18) 0%,
-    rgba(255, 255, 255, 0.07) 50%,
-    rgba(123, 57, 252, 0.12) 100%
-  );
-  backdrop-filter: blur(48px) saturate(180%);
-  -webkit-backdrop-filter: blur(48px) saturate(180%);
-  border: 1.5px solid rgba(255, 255, 255, 0.22);
-  border-top-color: rgba(255, 255, 255, 0.4);
-  box-shadow:
-    0 0 120px rgba(123, 57, 252, 0.5),
-    0 0 40px rgba(123, 57, 252, 0.2),
-    0 24px 60px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.25),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.06);
+/* ── Modal rebuild — liquid glass from scratch ── */
+
+/* Outer wrapper: clips content + holds the purple gradient bg */
+.modal-wrap {
   position: relative;
+  width: min(1100px, 94vw);
+  max-height: 86vh;
+  border-radius: 24px;
   overflow: hidden;
+  box-shadow:
+    0 0 100px rgba(123, 57, 252, 0.5),
+    0 0 40px rgba(123, 57, 252, 0.2),
+    0 32px 80px rgba(0, 0, 0, 0.6);
 }
 
-/* Inner section panels inside the modal */
-.glass-section-panel {
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-top-color: rgba(255, 255, 255, 0.2);
-  border-radius: 14px;
+/* Purple gradient bg — what the glass blurs against */
+.modal-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(
+    135deg,
+    #2d0a6e 0%,
+    #0f0630 35%,
+    #3a0e8a 65%,
+    #1a0442 100%
+  );
+}
+.modal-bg::before {
+  content: '';
+  position: absolute;
+  top: -25%;
+  right: -5%;
+  width: 55%;
+  height: 75%;
+  background: radial-gradient(circle, rgba(123, 57, 252, 0.65) 0%, transparent 65%);
+}
+.modal-bg::after {
+  content: '';
+  position: absolute;
+  bottom: -15%;
+  left: 15%;
+  width: 45%;
+  height: 55%;
+  background: radial-gradient(circle, rgba(160, 80, 255, 0.45) 0%, transparent 65%);
+}
+
+/* Glass panel — sits on top of the gradient bg and blurs it */
+.modal-glass {
+  position: relative;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 24px;
+  max-height: 86vh;
+  overflow-y: auto;
+}
+
+/* Inner section panels */
+.modal-section {
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  border-radius: 16px;
   padding: 16px;
 }
 
-/* Input fields inside modal */
+/* Input / textarea fields */
 .modal-field {
   width: 100%;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 10px;
-  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 10px 13px;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.92);
   font-family: var(--font-sans);
   resize: none;
   transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
-  line-height: 1.55;
+  line-height: 1.6;
 }
-
-.modal-field::placeholder {
-  color: rgba(255, 255, 255, 0.2);
-}
-
+.modal-field::placeholder { color: rgba(255, 255, 255, 0.22); }
 .modal-field:focus {
   outline: none;
-  border-color: rgba(123, 57, 252, 0.65);
-  background: rgba(123, 57, 252, 0.06);
-  box-shadow: 0 0 0 3px rgba(123, 57, 252, 0.12);
+  border-color: rgba(123, 57, 252, 0.75);
+  background: rgba(123, 57, 252, 0.1);
+  box-shadow: 0 0 0 3px rgba(123, 57, 252, 0.18);
+}
+
+/* Liquid glass for existing app components — unchanged */
+.liquid-glass-modal {
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  border-top-color: rgba(255, 255, 255, 0.32);
+  box-shadow: 0 0 120px rgba(123, 57, 252, 0.5), 0 24px 60px rgba(0, 0, 0, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+.glass-section-panel {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  padding: 16px;
 }
 
 /* App container */
