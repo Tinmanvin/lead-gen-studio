@@ -126,19 +126,13 @@ export default function LeadDetailModal({ lead, onClose, onSaved }: Props) {
       style={{ background: 'rgba(0,0,0,0.12)' } as React.CSSProperties}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      {/* Panel — thin, mostly-transparent glass so the purple app ambient shines through.
-          backdrop-filter:blur(44px) on the panel itself creates the frosted effect.
-          liquid-glass::before adds the gradient border ring. */}
+      {/* Panel — pure liquid-glass: rgba(255,255,255,0.01) + blur(4px) + gradient border.
+          No background override. The purple app ambient bleeds straight through. */}
       <div
         className="liquid-glass w-full rounded-2xl"
         style={{
           maxWidth: 'min(1160px, 92vw)',
-          background: 'rgba(12, 8, 24, 0.42)',
-          backdropFilter: 'blur(44px)',
-          WebkitBackdropFilter: 'blur(44px)',
-          border: '1px solid rgba(255,255,255,0.08)',
-          borderTop: '1px solid rgba(255,255,255,0.18)',
-          boxShadow: '0 0 120px rgba(123,57,252,0.35), 0 0 50px rgba(123,57,252,0.15), 0 24px 60px rgba(0,0,0,0.35)',
+          boxShadow: '0 0 120px rgba(123,57,252,0.4), 0 0 50px rgba(123,57,252,0.18), inset 0 1px 1px rgba(255,255,255,0.1)',
           maxHeight: '78vh',
         } as React.CSSProperties}
       >
