@@ -36,9 +36,18 @@ function Field({
         {label}
       </label>
       {multiline ? (
-        <textarea className="modal-field" rows={rows} value={value} onChange={e => onChange(e.target.value)} />
+        <textarea
+          rows={rows}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          className="w-full bg-transparent border-0 outline-none resize-none text-[13px] text-white/90 leading-[1.65] font-sans placeholder:text-white/25"
+        />
       ) : (
-        <input className="modal-field" value={value} onChange={e => onChange(e.target.value)} />
+        <input
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          className="w-full bg-transparent border-0 outline-none text-[13px] text-white/90 font-sans placeholder:text-white/25"
+        />
       )}
     </div>
   );
@@ -50,32 +59,22 @@ function ScoreRing({ score, size = 56 }: { score: number; size?: number }) {
   const pct = Math.min(score / 7, 1);
   const dash = `${pct * circ} ${circ}`;
   return (
-    <div
-      className="relative flex items-center justify-center flex-shrink-0 rounded-full"
-      style={{
-        width: size,
-        height: size,
-        background: 'rgba(255,255,255,0.05)',
-        border: '1px solid rgba(255,255,255,0.18)',
-        backdropFilter: 'blur(6px)',
-        WebkitBackdropFilter: 'blur(6px)',
-      }}
-    >
+    <div className="relative flex items-center justify-center flex-shrink-0" style={{ width: size, height: size }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="2.5" />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="2" />
         <circle
           cx={size / 2}
           cy={size / 2}
           r={r}
           fill="none"
           stroke="rgba(255,255,255,0.85)"
-          strokeWidth="2.5"
+          strokeWidth="2"
           strokeLinecap="round"
           strokeDasharray={dash}
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
         />
       </svg>
-      <span className="relative font-serif text-white text-[18px] leading-none">{score}</span>
+      <span className="relative font-serif text-white text-[20px] leading-none">{score}</span>
     </div>
   );
 }
@@ -123,22 +122,20 @@ export default function LeadDetailModal({ lead, onClose, onSaved }: Props) {
   const score = lead.value_add_score ?? 0;
 
   return (
-    /* ── Overlay ── */
     <div
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{
-        background: 'rgba(0, 0, 0, 0.35)',
-        backdropFilter: 'blur(6px)',
-        WebkitBackdropFilter: 'blur(6px)',
-      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-6"
+      style={{ background: 'rgba(0,0,0,0.45)' }}
     >
-      {/* Wide liquid-glass card */}
-      <div className="modal-wrap">
-        <div className="modal-glass">
+      {/* One big liquid-glass card — same class as the small cards, just bigger */}
+      <div
+        className="liquid-glass rounded-[24px] w-full overflow-hidden flex flex-col"
+        style={{ maxWidth: '1240px', maxHeight: '88vh' }}
+      >
+        <div className="relative z-10 flex flex-col overflow-y-auto" style={{ maxHeight: '88vh' }}>
 
-          {/* ── Header ── */}
-          <div className="relative flex items-start justify-between gap-4 px-8 pt-7 pb-5">
+          {/* Header */}
+          <div className="flex items-start justify-between gap-4 px-8 pt-7 pb-5">
             <div className="flex items-center gap-5 min-w-0">
               <ScoreRing score={score} size={58} />
               <div className="min-w-0">
@@ -146,18 +143,20 @@ export default function LeadDetailModal({ lead, onClose, onSaved }: Props) {
                   {lead.company_name}
                 </h2>
                 <div className="flex flex-wrap items-center gap-2 mt-2">
-                  {lead.dm_name && (
-                    <span className="text-[13px] text-white/70">{lead.dm_name}</span>
+                  {lead.dm_name && <span className="text-[13px] text-white/70">{lead.dm_name}</span>}
+                  {lead.dm_title && <span className="text-[12px] text-white/35">· {lead.dm_title}</span>}
+                  {lead.niche && (
+                    <span className="px-3 py-1 rounded-full text-[11px] text-white/80 bg-white/[0.04] border border-white/[0.12]">
+                      {lead.niche}
+                    </span>
                   )}
-                  {lead.dm_title && (
-                    <span className="text-[12px] text-white/35">· {lead.dm_title}</span>
-                  )}
-                  {lead.niche && <span className="modal-pill">{lead.niche}</span>}
                   {lead.demo_type && (
-                    <span className="modal-pill">{DEMO_LABELS[lead.demo_type] ?? lead.demo_type}</span>
+                    <span className="px-3 py-1 rounded-full text-[11px] text-white/80 bg-white/[0.04] border border-white/[0.12]">
+                      {DEMO_LABELS[lead.demo_type] ?? lead.demo_type}
+                    </span>
                   )}
                   {lead.copy_locked && (
-                    <span className="modal-pill" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                    <span className="px-3 py-1 rounded-full text-[11px] text-white/70 bg-white/[0.04] border border-white/[0.12] inline-flex items-center gap-1">
                       <svg width="10" height="10" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
                       </svg>
@@ -168,16 +167,9 @@ export default function LeadDetailModal({ lead, onClose, onSaved }: Props) {
               </div>
             </div>
 
-            {/* Close */}
             <button
               onClick={onClose}
-              className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-white/70 hover:text-white transition-colors"
-              style={{
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.18)',
-                backdropFilter: 'blur(6px)',
-                WebkitBackdropFilter: 'blur(6px)',
-              }}
+              className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-white/70 hover:text-white transition-colors bg-white/[0.04] border border-white/[0.12]"
             >
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M6 18L18 6M6 6l12 12" />
@@ -185,17 +177,14 @@ export default function LeadDetailModal({ lead, onClose, onSaved }: Props) {
             </button>
           </div>
 
-          {/* ── Contact strip ── */}
-          <div
-            className="flex flex-wrap items-center gap-x-6 gap-y-2 px-8 py-3"
-            style={{ borderTop: '1px solid rgba(255,255,255,0.08)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}
-          >
+          {/* Contact strip */}
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 px-8 py-3 border-t border-b border-white/[0.06]">
             {lead.dm_email && (
               <div className="flex items-center gap-2">
                 <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="rgba(255,255,255,0.5)" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
-                <span className="text-[13px] font-mono text-white/85">{lead.dm_email}</span>
+                <span className="text-[13px] text-white/85">{lead.dm_email}</span>
               </div>
             )}
             {lead.website && (
@@ -221,71 +210,57 @@ export default function LeadDetailModal({ lead, onClose, onSaved }: Props) {
             )}
           </div>
 
-          {/* ── Services ── */}
+          {/* Services */}
           {(lead.applicable_services?.length ?? 0) > 0 && (
-            <div
-              className="flex flex-wrap gap-2 px-8 py-3"
-              style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}
-            >
+            <div className="flex flex-wrap gap-2 px-8 py-3 border-b border-white/[0.06]">
               {lead.applicable_services.map(s => (
-                <span key={s} className="modal-pill">
+                <span key={s} className="px-3 py-1 rounded-full text-[11px] text-white/75 bg-white/[0.04] border border-white/[0.12]">
                   {s.replace(/_/g, ' ')}
                 </span>
               ))}
             </div>
           )}
 
-          {/* ── Body — 2 columns ── */}
+          {/* Body — 2 nested liquid-glass cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 px-8 py-6">
             {/* Social copy */}
-            <div className="modal-section flex flex-col gap-4">
-              <p className="text-[10px] font-semibold tracking-[0.14em] uppercase text-white/45 m-0">
-                Social Copy
-              </p>
-              <Field label="Icebreaker"       value={icebreaker}  onChange={setIcebreaker}  multiline rows={3} />
-              <Field label="LinkedIn message" value={linkedinMsg} onChange={setLinkedinMsg} multiline rows={3} />
-              <Field label="WhatsApp message" value={whatsappMsg} onChange={setWhatsappMsg} multiline rows={3} />
-              <Field label="Facebook message" value={facebookMsg} onChange={setFacebookMsg} multiline rows={3} />
+            <div className="liquid-glass rounded-[18px] p-5 flex flex-col gap-4">
+              <div className="relative z-10 flex flex-col gap-4">
+                <p className="text-[10px] font-semibold tracking-[0.14em] uppercase text-white/45 m-0">
+                  Social Copy
+                </p>
+                <Field label="Icebreaker"       value={icebreaker}  onChange={setIcebreaker}  multiline rows={3} />
+                <Field label="LinkedIn message" value={linkedinMsg} onChange={setLinkedinMsg} multiline rows={3} />
+                <Field label="WhatsApp message" value={whatsappMsg} onChange={setWhatsappMsg} multiline rows={3} />
+                <Field label="Facebook message" value={facebookMsg} onChange={setFacebookMsg} multiline rows={3} />
+              </div>
             </div>
 
             {/* Email copy */}
-            <div className="modal-section flex flex-col gap-4">
-              <p className="text-[10px] font-semibold tracking-[0.14em] uppercase text-white/45 m-0">
-                Email Copy
-              </p>
-              <Field label="Email subject" value={emailSubject} onChange={setEmailSubject} />
-              <Field label="Email body"    value={emailBody}    onChange={setEmailBody}    multiline rows={18} />
+            <div className="liquid-glass rounded-[18px] p-5 flex flex-col gap-4">
+              <div className="relative z-10 flex flex-col gap-4">
+                <p className="text-[10px] font-semibold tracking-[0.14em] uppercase text-white/45 m-0">
+                  Email Copy
+                </p>
+                <Field label="Email subject" value={emailSubject} onChange={setEmailSubject} />
+                <Field label="Email body"    value={emailBody}    onChange={setEmailBody}    multiline rows={18} />
+              </div>
             </div>
           </div>
 
-          {/* ── Footer ── */}
-          <div
-            className="flex items-center justify-end gap-3 px-8 py-5"
-            style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}
-          >
+          {/* Footer */}
+          <div className="flex items-center justify-end gap-3 px-8 py-5 border-t border-white/[0.06]">
             <button
               onClick={onClose}
               className="px-5 py-2.5 rounded-full text-[13px] text-white/55 hover:text-white/85 transition-colors"
-              style={{ background: 'transparent', border: 'none' }}
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
               disabled={saving}
-              className="px-6 py-2.5 rounded-full text-[13px] font-medium flex items-center gap-2 transition-all"
-              style={{
-                background: saved
-                  ? 'rgba(255,255,255,0.16)'
-                  : isDirty
-                  ? 'rgba(255,255,255,0.12)'
-                  : 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.25)',
-                color: 'white',
-                backdropFilter: 'blur(6px)',
-                WebkitBackdropFilter: 'blur(6px)',
-                cursor: isDirty ? 'pointer' : 'default',
-              }}
+              className="px-6 py-2.5 rounded-full text-[13px] font-medium flex items-center gap-2 text-white bg-white/[0.06] border border-white/[0.18] hover:bg-white/[0.10] transition-all"
+              style={{ cursor: isDirty ? 'pointer' : 'default' }}
             >
               {saving && (
                 <svg className="animate-spin" width="13" height="13" fill="none" viewBox="0 0 24 24">
