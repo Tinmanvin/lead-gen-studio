@@ -16,12 +16,6 @@ const DEMO_LABELS: Record<string, string> = {
   WIDGET: 'Widget',
   EMAIL_ONLY: 'Email Only',
 };
-const DEMO_COLORS: Record<string, string> = {
-  COMPOUND: 'bg-purple-500/30 text-purple-200',
-  REDESIGN: 'bg-blue-500/20 text-blue-300',
-  WIDGET: 'bg-teal-500/20 text-teal-300',
-  EMAIL_ONLY: 'bg-white/10 text-white/50',
-};
 
 function Field({
   label,
@@ -37,14 +31,8 @@ function Field({
   rows?: number;
 }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <label style={{
-        fontSize: 10,
-        fontWeight: 700,
-        color: 'rgba(255,255,255,0.45)',
-        letterSpacing: '0.1em',
-        textTransform: 'uppercase',
-      }}>
+    <div className="flex flex-col gap-2">
+      <label className="text-[10px] font-semibold tracking-[0.14em] uppercase text-white/45">
         {label}
       </label>
       {multiline ? (
@@ -56,19 +44,39 @@ function Field({
   );
 }
 
-function ScoreRing({ score, size = 44 }: { score: number; size?: number }) {
+function ScoreRing({ score, size = 56 }: { score: number; size?: number }) {
   const r = (size - 6) / 2;
   const circ = 2 * Math.PI * r;
   const pct = Math.min(score / 7, 1);
   const dash = `${pct * circ} ${circ}`;
-  const color = score >= 5 ? '#7b39fc' : score >= 2 ? '#a48ed7' : 'rgba(255,255,255,0.25)';
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ flexShrink: 0 }}>
-      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="3" />
-      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth="3"
-        strokeLinecap="round" strokeDasharray={dash} transform={`rotate(-90 ${size/2} ${size/2})`} />
-      <text x={size/2} y={size/2+4} textAnchor="middle" fill="white" fontSize="11" fontWeight="700">{score}</text>
-    </svg>
+    <div
+      className="relative flex items-center justify-center flex-shrink-0 rounded-full"
+      style={{
+        width: size,
+        height: size,
+        background: 'rgba(255,255,255,0.05)',
+        border: '1px solid rgba(255,255,255,0.18)',
+        backdropFilter: 'blur(6px)',
+        WebkitBackdropFilter: 'blur(6px)',
+      }}
+    >
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0">
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="2.5" />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke="rgba(255,255,255,0.85)"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeDasharray={dash}
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      </svg>
+      <span className="relative font-serif text-white text-[18px] leading-none">{score}</span>
+    </div>
   );
 }
 
@@ -100,8 +108,11 @@ export default function LeadDetailModal({ lead, onClose, onSaved }: Props) {
     if (!isDirty) { onClose(); return; }
     setSaving(true);
     try {
-      const patch = { icebreaker, email_subject: emailSubject, email_body: emailBody,
-        linkedin_msg: linkedinMsg, whatsapp_msg: whatsappMsg, facebook_msg: facebookMsg, copy_locked: true };
+      const patch = {
+        icebreaker, email_subject: emailSubject, email_body: emailBody,
+        linkedin_msg: linkedinMsg, whatsapp_msg: whatsappMsg, facebook_msg: facebookMsg,
+        copy_locked: true,
+      };
       await supabase.from('leads').update(patch).eq('id', lead.id);
       setSaved(true);
       onSaved?.({ ...lead, ...patch });
@@ -115,113 +126,83 @@ export default function LeadDetailModal({ lead, onClose, onSaved }: Props) {
     /* ── Overlay ── */
     <div
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{
-        position: 'fixed', inset: 0, zIndex: 50,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: 16,
-        background: 'rgba(5, 2, 14, 0.72)',
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)',
+        background: 'rgba(0, 0, 0, 0.35)',
+        backdropFilter: 'blur(6px)',
+        WebkitBackdropFilter: 'blur(6px)',
       }}
     >
-      {/* ── Outer wrap: clips + provides purple bg for glass to blur ── */}
+      {/* Wide liquid-glass card */}
       <div className="modal-wrap">
-
-        {/* Purple gradient background layer */}
-        <div className="modal-bg" />
-
-        {/* Glass panel on top */}
         <div className="modal-glass">
 
           {/* ── Header ── */}
-          <div style={{
-            display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
-            gap: 16, padding: '20px 24px 16px',
-            borderBottom: '1px solid rgba(255,255,255,0.1)',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
-              <ScoreRing score={score} size={46} />
-              <div style={{ minWidth: 0 }}>
-                <h2 style={{ fontSize: 17, fontWeight: 700, color: 'white', lineHeight: 1.3, margin: 0 }}>
+          <div className="relative flex items-start justify-between gap-4 px-8 pt-7 pb-5">
+            <div className="flex items-center gap-5 min-w-0">
+              <ScoreRing score={score} size={58} />
+              <div className="min-w-0">
+                <h2 className="font-serif text-white text-[28px] leading-tight m-0 truncate">
                   {lead.company_name}
                 </h2>
-                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 6 }}>
-                  {lead.niche && (
-                    <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 99,
-                      background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.65)' }}>
-                      {lead.niche}
-                    </span>
+                <div className="flex flex-wrap items-center gap-2 mt-2">
+                  {lead.dm_name && (
+                    <span className="text-[13px] text-white/70">{lead.dm_name}</span>
                   )}
-                  {lead.city && (
-                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{lead.city}</span>
+                  {lead.dm_title && (
+                    <span className="text-[12px] text-white/35">· {lead.dm_title}</span>
                   )}
+                  {lead.niche && <span className="modal-pill">{lead.niche}</span>}
                   {lead.demo_type && (
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${DEMO_COLORS[lead.demo_type] ?? 'bg-white/10 text-white/50'}`}>
-                      {DEMO_LABELS[lead.demo_type] ?? lead.demo_type}
-                    </span>
+                    <span className="modal-pill">{DEMO_LABELS[lead.demo_type] ?? lead.demo_type}</span>
                   )}
                   {lead.copy_locked && (
-                    <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 99,
-                      background: 'rgba(245,158,11,0.2)', color: 'rgb(252,211,77)',
-                      display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span className="modal-pill" style={{ color: 'rgba(255,255,255,0.7)' }}>
                       <svg width="10" height="10" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
                       </svg>
-                      Copy locked
+                      Locked
                     </span>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Close button */}
+            {/* Close */}
             <button
               onClick={onClose}
+              className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-white/70 hover:text-white transition-colors"
               style={{
-                flexShrink: 0, width: 32, height: 32, borderRadius: '50%',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: 'rgba(255,255,255,0.1)',
-                border: '1.5px solid rgba(255,255,255,0.2)',
-                color: 'rgba(255,255,255,0.6)', cursor: 'pointer', transition: 'all 150ms',
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.18)',
+                backdropFilter: 'blur(6px)',
+                WebkitBackdropFilter: 'blur(6px)',
               }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.18)'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.1)'; }}
             >
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
 
-          {/* ── Contact row ── */}
-          <div style={{
-            padding: '10px 24px', display: 'flex', flexWrap: 'wrap',
-            alignItems: 'center', gap: '6px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.08)',
-          }}>
-            {lead.dm_name && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="rgba(255,255,255,0.3)" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>{lead.dm_name}</span>
-                {lead.dm_title && <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>· {lead.dm_title}</span>}
-              </div>
-            )}
+          {/* ── Contact strip ── */}
+          <div
+            className="flex flex-wrap items-center gap-x-6 gap-y-2 px-8 py-3"
+            style={{ borderTop: '1px solid rgba(255,255,255,0.08)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}
+          >
             {lead.dm_email && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="rgba(167,139,250,0.6)" strokeWidth="2">
+              <div className="flex items-center gap-2">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="rgba(255,255,255,0.5)" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
-                <span style={{ fontSize: 13, fontFamily: 'monospace', color: 'rgb(196,181,253)' }}>{lead.dm_email}</span>
+                <span className="text-[13px] font-mono text-white/85">{lead.dm_email}</span>
               </div>
             )}
             {lead.website && (
               <a
                 href={lead.website.startsWith('http') ? lead.website : `https://${lead.website}`}
                 target="_blank" rel="noreferrer"
-                style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13,
-                  color: 'rgba(255,255,255,0.35)', textDecoration: 'none' }}
+                className="flex items-center gap-2 text-[13px] text-white/55 hover:text-white/80 transition-colors no-underline"
               >
                 <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -229,34 +210,36 @@ export default function LeadDetailModal({ lead, onClose, onSaved }: Props) {
                 {lead.website.replace(/^https?:\/\//, '')}
               </a>
             )}
+            {lead.city && (
+              <div className="flex items-center gap-2 text-[13px] text-white/45">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                {lead.city}
+              </div>
+            )}
           </div>
 
           {/* ── Services ── */}
           {(lead.applicable_services?.length ?? 0) > 0 && (
-            <div style={{
-              padding: '10px 24px', display: 'flex', flexWrap: 'wrap', gap: 6,
-              borderBottom: '1px solid rgba(255,255,255,0.08)',
-            }}>
+            <div
+              className="flex flex-wrap gap-2 px-8 py-3"
+              style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}
+            >
               {lead.applicable_services.map(s => (
-                <span key={s} style={{
-                  fontSize: 11, padding: '3px 10px', borderRadius: 99,
-                  background: 'rgba(123,57,252,0.2)', border: '1px solid rgba(123,57,252,0.35)',
-                  color: 'rgb(196,181,253)',
-                }}>
+                <span key={s} className="modal-pill">
                   {s.replace(/_/g, ' ')}
                 </span>
               ))}
             </div>
           )}
 
-          {/* ── Body: 2 column ── */}
-          <div style={{
-            display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, padding: 20,
-          }}>
-            {/* Left — Social Copy */}
-            <div className="modal-section" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <p style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)',
-                letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0 }}>
+          {/* ── Body — 2 columns ── */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 px-8 py-6">
+            {/* Social copy */}
+            <div className="modal-section flex flex-col gap-4">
+              <p className="text-[10px] font-semibold tracking-[0.14em] uppercase text-white/45 m-0">
                 Social Copy
               </p>
               <Field label="Icebreaker"       value={icebreaker}  onChange={setIcebreaker}  multiline rows={3} />
@@ -265,10 +248,9 @@ export default function LeadDetailModal({ lead, onClose, onSaved }: Props) {
               <Field label="Facebook message" value={facebookMsg} onChange={setFacebookMsg} multiline rows={3} />
             </div>
 
-            {/* Right — Email Copy */}
-            <div className="modal-section" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <p style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)',
-                letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0 }}>
+            {/* Email copy */}
+            <div className="modal-section flex flex-col gap-4">
+              <p className="text-[10px] font-semibold tracking-[0.14em] uppercase text-white/45 m-0">
                 Email Copy
               </p>
               <Field label="Email subject" value={emailSubject} onChange={setEmailSubject} />
@@ -277,37 +259,32 @@ export default function LeadDetailModal({ lead, onClose, onSaved }: Props) {
           </div>
 
           {/* ── Footer ── */}
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
-            gap: 10, padding: '12px 20px 20px',
-            borderTop: '1px solid rgba(255,255,255,0.08)',
-          }}>
+          <div
+            className="flex items-center justify-end gap-3 px-8 py-5"
+            style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}
+          >
             <button
               onClick={onClose}
-              style={{ padding: '8px 16px', borderRadius: 10, fontSize: 13,
-                color: 'rgba(255,255,255,0.45)', background: 'none', border: 'none',
-                cursor: 'pointer', transition: 'color 150ms' }}
+              className="px-5 py-2.5 rounded-full text-[13px] text-white/55 hover:text-white/85 transition-colors"
+              style={{ background: 'transparent', border: 'none' }}
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
               disabled={saving}
+              className="px-6 py-2.5 rounded-full text-[13px] font-medium flex items-center gap-2 transition-all"
               style={{
-                padding: '9px 20px', borderRadius: 12, fontSize: 13, fontWeight: 600,
-                cursor: isDirty ? 'pointer' : 'default',
-                display: 'flex', alignItems: 'center', gap: 7, transition: 'all 200ms',
                 background: saved
-                  ? 'rgba(34,197,94,0.75)'
+                  ? 'rgba(255,255,255,0.16)'
                   : isDirty
-                  ? 'rgba(123,57,252,0.9)'
-                  : 'rgba(255,255,255,0.07)',
-                border: saved
-                  ? '1.5px solid rgba(74,222,128,0.4)'
-                  : isDirty
-                  ? '1.5px solid rgba(167,139,250,0.5)'
-                  : '1.5px solid rgba(255,255,255,0.12)',
-                color: isDirty || saved ? 'white' : 'rgba(255,255,255,0.35)',
+                  ? 'rgba(255,255,255,0.12)'
+                  : 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.25)',
+                color: 'white',
+                backdropFilter: 'blur(6px)',
+                WebkitBackdropFilter: 'blur(6px)',
+                cursor: isDirty ? 'pointer' : 'default',
               }}
             >
               {saving && (
@@ -325,8 +302,8 @@ export default function LeadDetailModal({ lead, onClose, onSaved }: Props) {
             </button>
           </div>
 
-        </div>{/* end .modal-glass */}
-      </div>{/* end .modal-wrap */}
+        </div>
+      </div>
     </div>
   );
 }

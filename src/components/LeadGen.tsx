@@ -39,6 +39,79 @@ function accentClass(score: number, demoType?: string | null) {
   return 'accent-cold';
 }
 
+// ── Demo preview cards (shown until real data arrives) ────────────────────────
+const DEMO_PREVIEW_LEADS: AllLead[] = [
+  {
+    id: 'demo-1',
+    company_name: 'Emergency Plumber South-East London',
+    dm_name: 'Paris Clark',
+    dm_title: 'Owner',
+    dm_email: 'paris@emergencyplumber24hr.uk',
+    website: 'emergencyplumber24hr.uk',
+    city: 'London',
+    niche: 'plumber',
+    demo_type: 'WIDGET',
+    value_add_score: 6,
+    composite_score: 6,
+    touchpoint_tier: 'A',
+    applicable_services: ['booking_widget', 'after_hours_capture'],
+    icebreaker: "Noticed you're getting inquiries through your site but there's no way for customers to actually book online — must create a few extra phone calls during your busy days.",
+    email_subject: 'Quick idea for your booking flow',
+    email_body: 'Hey Paris, noticed your site looks great but customers have no way to book a slot directly...',
+    linkedin_msg: '',
+    whatsapp_msg: '',
+    facebook_msg: '',
+    copy_locked: false,
+    status: 'scored',
+  } as AllLead,
+  {
+    id: 'demo-2',
+    company_name: 'PGDS Garage Doors Repairs of Perth',
+    dm_name: 'Jane Doe',
+    dm_title: 'Director',
+    dm_email: 'info@garagedoorservicesperth.com.au',
+    website: 'garagedoorservicesperth.com.au',
+    city: 'Perth',
+    niche: 'mechanic',
+    demo_type: 'COMPOUND',
+    value_add_score: 7,
+    composite_score: 7,
+    touchpoint_tier: 'A',
+    applicable_services: ['site_redesign', 'booking_widget', 'review_capture'],
+    icebreaker: "Saw you just listed some new service offerings on your site — curious if you're getting inquiries through there or mostly phone calls still?",
+    email_subject: 'Loved your new service line-up',
+    email_body: 'Hey Jane, just spotted the new services on your site...',
+    linkedin_msg: '',
+    whatsapp_msg: '',
+    facebook_msg: '',
+    copy_locked: true,
+    status: 'scored',
+  } as AllLead,
+  {
+    id: 'demo-3',
+    company_name: 'Realestate 88',
+    dm_name: 'Peter Wright',
+    dm_title: 'Principal',
+    dm_email: 'info@re88.com.au',
+    website: 're88.com.au',
+    city: 'Sydney',
+    niche: 'real estate agent',
+    demo_type: 'WIDGET',
+    value_add_score: 5,
+    composite_score: 5,
+    touchpoint_tier: 'B',
+    applicable_services: ['booking_widget', 'lead_capture'],
+    icebreaker: "Noticed you're still getting inquiries after hours but your site doesn't have a way for people to book a time — curious if that's costing you leads.",
+    email_subject: 'After-hours leads on your site',
+    email_body: 'Hey Peter, took a look at re88 and noticed...',
+    linkedin_msg: '',
+    whatsapp_msg: '',
+    facebook_msg: '',
+    copy_locked: false,
+    status: 'scored',
+  } as AllLead,
+];
+
 function ScoreRing({ score, size = 36 }: { score: number; size?: number }) {
   const r = (size - 5) / 2;
   const circ = 2 * Math.PI * r;
@@ -434,7 +507,9 @@ export default function LeadGen({ showEngine, onToggleEngine }: { showEngine: bo
                 {preview.loading
                   ? <div className="text-center py-8 text-white/30 text-sm">Loading preview…</div>
                   : <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
-                      {preview.leads.map(lead => <LeadCard key={lead.id} lead={lead} onClick={() => setSelectedLead(lead)} />)}
+                      {(preview.leads.length > 0 ? preview.leads : DEMO_PREVIEW_LEADS).map(lead =>
+                        <LeadCard key={lead.id} lead={lead} onClick={() => setSelectedLead(lead)} />
+                      )}
                     </div>}
               </div>
             )}
