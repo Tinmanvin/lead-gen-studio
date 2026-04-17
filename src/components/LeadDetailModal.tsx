@@ -136,12 +136,13 @@ export default function LeadDetailModal({ lead, onClose, onSaved }: Props) {
         className="liquid-glass w-full rounded-2xl"
         style={{
           maxWidth: 'min(1160px, 92vw)',
+          background: 'rgba(28, 12, 60, 0.95)',
           boxShadow: '0 0 140px rgba(123,57,252,0.55), 0 0 60px rgba(123,57,252,0.25), 0 24px 60px rgba(0,0,0,0.3)',
           maxHeight: '78vh',
         } as React.CSSProperties}
       >
-        {/* Scrollable inner — overflow:hidden on outer clips it correctly */}
-        <div className="overflow-y-auto" style={{ maxHeight: '78vh' }}>
+        {/* Scrollable inner */}
+        <div className="overflow-y-auto no-scrollbar" style={{ maxHeight: '78vh' }}>
 
           {/* ── Header ── */}
           <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-4"

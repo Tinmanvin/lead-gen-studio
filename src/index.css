@@ -124,6 +124,10 @@
   background: rgba(20, 15, 40, 0.25);
 }
 
+/* Hide scrollbar utility */
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
