@@ -65,7 +65,8 @@ async function loadBatchLeads(): Promise<AllLead[]> {
   const { data: leads } = await supabase
     .from('leads')
     .select(LEAD_SELECT)
-    .in('id', ids);
+    .in('id', ids)
+    .neq('status', 'outreached'); // hide sent leads immediately
 
   const posMap = new Map(batch.map(b => [b.lead_id, b.position]));
   return (leads ?? [])
@@ -112,6 +113,7 @@ export function usePreviewBatch() {
     const ch = supabase
       .channel('preview_batch_changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'preview_batch' }, load)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'leads' }, load)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [load]);
