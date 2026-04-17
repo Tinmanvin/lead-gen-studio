@@ -125,16 +125,17 @@ export default function LeadDetailModal({ lead, onClose, onSaved }: Props) {
     <div
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
       className="fixed inset-0 z-50 flex items-center justify-center p-6"
-      style={{
-        background: 'transparent',
-        backdropFilter: 'blur(24px) saturate(140%)',
-        WebkitBackdropFilter: 'blur(24px) saturate(140%)',
-      }}
+      style={{ background: 'transparent' }}
     >
-      {/* One big liquid-glass card — same class as the small cards, just bigger */}
+      {/* One big liquid-glass card — heavy blur on the card itself, zero tint */}
       <div
         className="liquid-glass rounded-[24px] w-full overflow-hidden flex flex-col"
-        style={{ maxWidth: '1240px', maxHeight: '88vh' }}
+        style={{
+          maxWidth: '1240px',
+          maxHeight: '88vh',
+          backdropFilter: 'blur(40px) saturate(160%)',
+          WebkitBackdropFilter: 'blur(40px) saturate(160%)',
+        }}
       >
         <div className="relative z-10 flex flex-col overflow-y-auto" style={{ maxHeight: '88vh' }}>
 
