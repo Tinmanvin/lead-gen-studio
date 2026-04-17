@@ -392,7 +392,7 @@ export default function Outreach({ showEngine: showEngineProp = false }: { showE
                 ? <div className="text-center py-8 text-white/30 text-sm">Loading…</div>
                 : hot.leads.length === 0
                   ? <div className="text-center py-8 text-white/30 text-sm">No hot leads yet</div>
-                  : <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                  : <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
                       {hot.leads.map(lead => (
                         <HotLeadCard
                           key={lead.id}

@@ -6,12 +6,20 @@ import { usePreviewBatch } from '@/hooks/usePreviewBatch';
 import { useHotLeads } from '@/hooks/useHotLeads';
 import { useLeadPipelineStats } from '@/hooks/useLeadPipelineStats';
 import { useGeoSettings } from '@/hooks/useSettings';
-import { useSourceToggles, SOURCE_LABELS, SOURCE_KEYS } from '@/hooks/useSourceToggles';
+import { useSourceToggles, SOURCE_LABELS } from '@/hooks/useSourceToggles';
 import { useTriggerRun } from '@/hooks/useTriggerRun';
 import LeadDetailModal from './LeadDetailModal';
 import type { TriggerTask } from '@/hooks/useTriggerRun';
 import type { AllLead } from '@/hooks/useAllLeads';
 import type { SourceKey } from '@/hooks/useSourceToggles';
+
+// ── CSS content guard ─────────────────────────────────────────────────────────
+
+function isCssContent(text?: string | null): boolean {
+  if (!text || text.length < 80) return false;
+  return (text.includes('{') && text.includes(':') && text.includes('}')) ||
+    text.includes('overflow:') || text.includes('-webkit-') || text.includes('display:flex');
+}
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
@@ -31,152 +39,207 @@ function accentClass(score: number, demoType?: string | null) {
   return 'accent-cold';
 }
 
-function ScoreRing({ score, size = 40 }: { score: number; size?: number }) {
-  const r = (size - 4) / 2;
+function ScoreRing({ score, size = 36 }: { score: number; size?: number }) {
+  const r = (size - 5) / 2;
   const circ = 2 * Math.PI * r;
-  const pct = Math.round((score / 7) * 100);
-  const dash = `${(pct / 100) * circ} ${circ}`;
-  const color = score >= 5 ? '#7b39fc' : score >= 2 ? '#a48ed7' : 'rgba(255,255,255,0.25)';
+  const offset = circ - (Math.min(score / 7, 1)) * circ;
+  const color = score >= 5 ? '#7b39fc' : score >= 2 ? '#a48ed7' : 'rgba(255,255,255,0.2)';
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="3" />
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth="3"
-        strokeLinecap="round" strokeDasharray={dash} transform={`rotate(-90 ${size/2} ${size/2})`} />
-      <text x={size/2} y={size/2 + 4} textAnchor="middle" fill="white" fontSize="10" fontWeight="600">{score}</text>
+    <svg width={size} height={size} className="-rotate-90">
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="2.5" />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth="2.5"
+        strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" />
+      <text x={size / 2} y={size / 2} textAnchor="middle" dominantBaseline="central"
+        fill="white" fontSize={9} fontWeight="700" className="rotate-90 origin-center"
+        style={{ transform: 'rotate(90deg)', transformOrigin: `${size/2}px ${size/2}px` }}>
+        {score}
+      </text>
     </svg>
   );
 }
 
 function RunBtn({ label, state, onClick }: { label: string; state: 'idle' | 'loading' | 'success' | 'error'; onClick: () => void }) {
-  const styles = { idle: 'bg-purple-primary hover:bg-purple-primary/90 text-white', loading: 'bg-purple-primary/40 text-white/60 cursor-not-allowed', success: 'bg-green-500/80 text-white', error: 'bg-red-500/80 text-white' };
-  const labels = { idle: label, loading: 'Triggering…', success: 'Triggered ✓', error: 'Failed' };
+  const styles = {
+    idle: 'bg-purple-primary hover:bg-purple-primary/90 text-white',
+    loading: 'bg-purple-primary/40 text-white/60 cursor-not-allowed',
+    success: 'bg-green-500/80 text-white',
+    error: 'bg-red-500/80 text-white',
+  };
   return (
     <button onClick={onClick} disabled={state === 'loading'}
       className={`px-3 py-1.5 rounded-button text-xs font-semibold transition-all duration-200 flex items-center gap-1.5 ${styles[state]}`}>
       {state === 'loading' && <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>}
-      {labels[state]}
+      {state === 'idle' ? label : state === 'loading' ? 'Triggering…' : state === 'success' ? 'Triggered ✓' : 'Failed'}
     </button>
   );
 }
 
-// ── Lead card (Preview + Hot Leads tabs) ─────────────────────────────────────
+// ── Lead card (Preview + Hot tabs) ───────────────────────────────────────────
+// Fixed consistent height via flex-col + flex-1 on icebreaker section
 
 function LeadCard({ lead, onClick }: { lead: AllLead; onClick: () => void }) {
+  const safeIcebreaker = !isCssContent(lead.icebreaker) ? lead.icebreaker : null;
   return (
-    <button onClick={onClick} className={`liquid-glass rounded-card p-4 text-left w-full transition-all duration-200 hover:bg-white/8 ${accentClass(lead.value_add_score, lead.demo_type)}`}>
-      <div className="flex items-start justify-between gap-3">
+    <button onClick={onClick}
+      className={`liquid-glass rounded-card p-4 text-left w-full hover:-translate-y-0.5 transition-all duration-200 flex flex-col ${accentClass(lead.value_add_score, lead.demo_type)}`}>
+      {/* Header */}
+      <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-white truncate">{lead.company_name}</p>
-          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-            {lead.niche && <span className="text-xs px-1.5 py-0.5 rounded-full bg-white/8 text-white/50">{lead.niche}</span>}
-            {lead.city && <span className="text-xs text-white/30">{lead.city}</span>}
-          </div>
+          <p className="text-sm font-semibold text-white line-clamp-1">{lead.company_name}</p>
+          <p className="text-xs text-white/50 mt-0.5 line-clamp-1">{lead.dm_name ?? lead.city ?? '—'}</p>
         </div>
-        <ScoreRing score={lead.value_add_score} size={38} />
+        <ScoreRing score={lead.value_add_score} size={32} />
       </div>
-      {lead.demo_type && (
-        <div className="mt-2">
-          <span className={`text-xs px-2 py-0.5 rounded-full ${DEMO_COLORS[lead.demo_type] ?? 'bg-white/10 text-white/50'}`}>
+
+      {/* Badges — fixed-height row */}
+      <div className="flex items-center gap-1.5 mt-2.5 min-h-[20px] flex-wrap">
+        {lead.niche && (
+          <span className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-tag liquid-glass text-white/75">
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-primary/60 flex-shrink-0" />
+            {lead.niche}
+          </span>
+        )}
+        {lead.demo_type && (
+          <span className={`text-xs px-2 py-0.5 rounded-tag ${DEMO_COLORS[lead.demo_type] ?? 'bg-white/10 text-white/50'}`}>
             {DEMO_LABELS[lead.demo_type] ?? lead.demo_type}
           </span>
-        </div>
-      )}
-      {lead.dm_email && <p className="text-xs text-purple-300/70 mt-2 truncate font-mono">{lead.dm_email}</p>}
-      {(lead.applicable_services?.length ?? 0) > 0 && (
-        <div className="flex flex-wrap gap-1 mt-2">
-          {lead.applicable_services.slice(0, 3).map(s => (
-            <span key={s} className="text-xs px-1.5 py-0.5 rounded-full bg-purple-500/10 text-purple-300/60">{s.replace(/_/g, ' ')}</span>
-          ))}
-          {lead.applicable_services.length > 3 && <span className="text-xs text-white/30">+{lead.applicable_services.length - 3}</span>}
-        </div>
-      )}
-      {lead.icebreaker && <p className="text-xs text-white/40 mt-2 line-clamp-2 italic">"{lead.icebreaker}"</p>}
+        )}
+      </div>
+
+      {/* Email — fixed height */}
+      <p className="text-xs font-mono mt-2 truncate h-4">
+        {lead.dm_email
+          ? <span className="text-purple-300/70">{lead.dm_email}</span>
+          : <span className="text-white/20">no email found</span>}
+      </p>
+
+      {/* Icebreaker — flex-1 ensures all cards stretch to same height */}
+      <p className="text-xs text-white/35 mt-2 italic line-clamp-2 flex-1 min-h-[2.5rem]">
+        {safeIcebreaker ? `"${safeIcebreaker}"` : ''}
+      </p>
     </button>
   );
 }
 
-// ── All Leads row ─────────────────────────────────────────────────────────────
+// ── All Leads row (IndeedScreen-style expand on click) ────────────────────────
 
-function LeadRow({ lead, onClick }: { lead: AllLead; onClick: () => void }) {
+function LeadRow({ lead, isExpanded, onToggle, onEdit }: {
+  lead: AllLead;
+  isExpanded: boolean;
+  onToggle: () => void;
+  onEdit: () => void;
+}) {
+  const safeEmailBody = !isCssContent(lead.email_body) ? lead.email_body : null;
+  const safeIcebreaker = !isCssContent(lead.icebreaker) ? lead.icebreaker : null;
+
   return (
-    <button onClick={onClick}
-      className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-left group border-b border-white/5 last:border-0">
-      <ScoreRing score={lead.value_add_score} size={32} />
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-white group-hover:text-purple-200 transition-colors truncate">{lead.company_name}</p>
-        <div className="flex items-center gap-2 mt-0.5">
-          {lead.niche && <span className="text-xs text-white/40">{lead.niche}</span>}
-          {lead.city && <span className="text-xs text-white/25">· {lead.city}</span>}
+    <div className="liquid-glass rounded-card overflow-hidden">
+      <div
+        className="p-3 flex items-center justify-between cursor-pointer hover:bg-white/[0.04] transition-colors"
+        onClick={onToggle}
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h4 className="font-semibold text-sm text-white">{lead.company_name}</h4>
+            </div>
+            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+              {lead.niche && <span className="text-xs px-2 py-0.5 rounded-tag bg-white/[0.06] text-white/50">{lead.niche}</span>}
+              {lead.demo_type && (
+                <span className={`text-xs px-2 py-0.5 rounded-tag ${DEMO_COLORS[lead.demo_type] ?? 'bg-white/10 text-white/40'}`}>
+                  {DEMO_LABELS[lead.demo_type] ?? lead.demo_type}
+                </span>
+              )}
+              {lead.city && <span className="text-xs text-white/30">{lead.city}</span>}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 text-xs flex-shrink-0 ml-4">
+          {lead.dm_email && (
+            <span className="text-white/40 font-mono hidden md:block max-w-[160px] truncate">{lead.dm_email}</span>
+          )}
+          {lead.copy_locked && (
+            <svg className="w-3.5 h-3.5 text-amber-400/60" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+            </svg>
+          )}
+          <svg className={`w-3.5 h-3.5 text-white/25 transition-transform duration-200 flex-shrink-0 ${isExpanded ? 'rotate-90' : ''}`}
+            fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
         </div>
       </div>
-      {lead.demo_type && (
-        <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 hidden sm:inline ${DEMO_COLORS[lead.demo_type] ?? 'bg-white/10 text-white/40'}`}>
-          {DEMO_LABELS[lead.demo_type] ?? lead.demo_type}
-        </span>
+
+      {isExpanded && (
+        <div className="px-4 pb-4 pt-0 border-t border-white/[0.06] space-y-2">
+          {safeEmailBody ? (
+            <>
+              {lead.email_subject && (
+                <div className="mt-3">
+                  <p className="text-xs text-white/35 mb-1">Subject</p>
+                  <p className="text-sm text-white/80 font-medium">{lead.email_subject}</p>
+                </div>
+              )}
+              {safeIcebreaker && (
+                <div>
+                  <p className="text-xs text-white/35 mb-1">Icebreaker</p>
+                  <p className="text-sm text-white/60 italic">"{safeIcebreaker}"</p>
+                </div>
+              )}
+              <button
+                onClick={e => { e.stopPropagation(); onEdit(); }}
+                className="mt-1 px-3 py-1.5 rounded-button text-xs font-semibold bg-purple-primary/20 text-purple-primary hover:bg-purple-primary/30 border border-purple-primary/30 transition-colors"
+              >
+                Edit Copy
+              </button>
+            </>
+          ) : (
+            <p className="text-sm text-white/30 mt-3 italic">No copy generated yet — run enrichment.</p>
+          )}
+        </div>
       )}
-      {lead.dm_email ? (
-        <span className="text-xs font-mono text-purple-300/60 flex-shrink-0 hidden md:inline max-w-[160px] truncate">{lead.dm_email}</span>
-      ) : (
-        <span className="text-xs text-white/20 flex-shrink-0 hidden md:inline">no email</span>
-      )}
-      {lead.copy_locked && (
-        <svg className="w-3.5 h-3.5 text-amber-400/60 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-          <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-        </svg>
-      )}
-      <svg className="w-3.5 h-3.5 text-white/20 group-hover:text-white/50 transition-colors flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-      </svg>
-    </button>
+    </div>
   );
 }
 
 function StatTile({ label, value, dim = false }: { label: string; value: number; dim?: boolean }) {
   return (
-    <div className="liquid-glass rounded-card p-3 text-center">
+    <div className="liquid-glass rounded-card p-4 text-center">
       <p className={`text-2xl font-bold ${dim ? 'text-white/40' : 'text-white'}`}>{value.toLocaleString()}</p>
-      <p className="text-xs text-white/40 mt-0.5">{label}</p>
+      <p className="text-xs uppercase tracking-wider text-white/35 mt-1">{label}</p>
     </div>
   );
 }
 
-// ── Toggle row ────────────────────────────────────────────────────────────────
+// ── Engine Room toggles (original style restored) ─────────────────────────────
 
-function ToggleRow({ label, enabled, onToggle }: { label: string; enabled: boolean; onToggle: () => void }) {
+function ToggleRow({ label, enabled, onToggle, isLast = false }: {
+  label: string; enabled: boolean; onToggle: () => void; isLast?: boolean;
+}) {
   return (
-    <div className="flex items-center justify-between py-1.5">
-      <span className="text-xs text-white/60">{label}</span>
-      <button onClick={onToggle}
-        className={`relative w-9 h-5 rounded-full transition-colors duration-200 flex-shrink-0 ${enabled ? 'bg-purple-primary' : 'bg-white/20'}`}>
-        <span
-          className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-all duration-200"
-          style={{ transform: enabled ? 'translateX(16px)' : 'translateX(0px)' }}
-        />
-      </button>
+    <div
+      className="flex items-center justify-between py-3 cursor-pointer"
+      style={{ borderBottom: !isLast ? '1px solid rgba(255,255,255,0.06)' : 'none' }}
+      onClick={onToggle}
+    >
+      <span className="text-sm text-white">{label}</span>
+      <div className={`w-10 h-5 rounded-full relative transition-colors flex-shrink-0 ${enabled ? 'bg-purple-primary' : 'bg-white/[0.1]'}`}>
+        <div className={`w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all ${enabled ? 'right-0.5' : 'left-0.5'}`} />
+      </div>
     </div>
   );
 }
 
-// ── Engine Room (with geo + source toggles) ───────────────────────────────────
+// ── Engine Room (original liquid-glass card sections) ─────────────────────────
 
 const AU_SOURCES: SourceKey[] = [
-  'source_google_maps_au',
-  'source_ahpra',
-  'source_mfaa',
-  'source_law_society_au',
-  'source_hipages',
-  'source_reia',
+  'source_google_maps_au', 'source_ahpra', 'source_mfaa',
+  'source_law_society_au', 'source_hipages', 'source_reia',
 ];
-
 const UK_SOURCES: SourceKey[] = [
-  'source_google_maps_uk',
-  'source_companies_house',
-  'source_fca_register',
-  'source_law_society_uk',
-  'source_yell',
-  'source_checkatrade',
-  'source_trustpilot',
-  'source_opencorporates',
+  'source_google_maps_uk', 'source_companies_house', 'source_fca_register',
+  'source_law_society_uk', 'source_yell', 'source_checkatrade',
+  'source_trustpilot', 'source_opencorporates',
 ];
 
 function EngineRoom({ onBack }: { onBack: () => void }) {
@@ -184,83 +247,71 @@ function EngineRoom({ onBack }: { onBack: () => void }) {
   const sources = useSourceToggles();
 
   return (
-    <div className="h-full flex flex-col p-6 space-y-5 overflow-y-auto">
+    <div className="p-6 space-y-5 overflow-y-auto h-full">
       <div className="flex items-center gap-3">
-        <button onClick={onBack} className="text-xs text-white/50 hover:text-white/80 flex items-center gap-1 transition-colors">
-          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+        <button onClick={onBack}
+          className="text-xs text-white/50 hover:text-white/80 flex items-center gap-1 transition-colors">
+          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
           Back
         </button>
         <h3 className="text-sm font-semibold text-white/80">Engine Room</h3>
       </div>
 
       {/* Geography */}
-      <div>
-        <p className="text-xs text-white/40 uppercase tracking-wider mb-2">Geography</p>
-        <div className="liquid-glass rounded-lg px-3 py-1">
-          {geo.loading ? (
-            <p className="text-xs text-white/30 py-2">Loading…</p>
-          ) : (
-            <>
-              <ToggleRow label="Australia (AU)" enabled={geo.geoAU} onToggle={() => geo.toggle('geo_au_scrape', !geo.geoAU)} />
-              <ToggleRow label="United Kingdom (UK)" enabled={geo.geoUK} onToggle={() => geo.toggle('geo_uk_scrape', !geo.geoUK)} />
-            </>
-          )}
-        </div>
+      <div className="liquid-glass rounded-card p-5">
+        <h3 className="font-semibold text-[16px] text-white mb-1">Geography</h3>
+        {geo.loading ? (
+          <p className="text-sm text-white/30 py-3">Loading…</p>
+        ) : (
+          <>
+            <ToggleRow label="🇦🇺 Australia" enabled={geo.geoAU} onToggle={() => geo.toggle('geo_au_scrape', !geo.geoAU)} />
+            <ToggleRow label="🇬🇧 United Kingdom" enabled={geo.geoUK} onToggle={() => geo.toggle('geo_uk_scrape', !geo.geoUK)} isLast />
+          </>
+        )}
       </div>
 
       {/* AU Sources */}
-      <div>
-        <p className="text-xs text-white/40 uppercase tracking-wider mb-2">AU Data Sources</p>
-        <div className="liquid-glass rounded-lg px-3 py-1">
-          {sources.loading ? (
-            <p className="text-xs text-white/30 py-2">Loading…</p>
-          ) : AU_SOURCES.map(key => (
-            <ToggleRow
-              key={key}
-              label={SOURCE_LABELS[key]}
-              enabled={sources.toggles[key] ?? true}
-              onToggle={() => sources.toggle(key)}
-            />
-          ))}
-        </div>
+      <div className="liquid-glass rounded-card p-5">
+        <h3 className="font-semibold text-[16px] text-white mb-1">AU Data Sources</h3>
+        {sources.loading ? (
+          <p className="text-sm text-white/30 py-3">Loading…</p>
+        ) : AU_SOURCES.map((key, i) => (
+          <ToggleRow key={key} label={SOURCE_LABELS[key]} enabled={sources.toggles[key] ?? true}
+            onToggle={() => sources.toggle(key)} isLast={i === AU_SOURCES.length - 1} />
+        ))}
       </div>
 
       {/* UK Sources */}
-      <div>
-        <p className="text-xs text-white/40 uppercase tracking-wider mb-2">UK Data Sources</p>
-        <div className="liquid-glass rounded-lg px-3 py-1">
-          {sources.loading ? (
-            <p className="text-xs text-white/30 py-2">Loading…</p>
-          ) : UK_SOURCES.map(key => (
-            <ToggleRow
-              key={key}
-              label={SOURCE_LABELS[key]}
-              enabled={sources.toggles[key] ?? true}
-              onToggle={() => sources.toggle(key)}
-            />
-          ))}
-        </div>
+      <div className="liquid-glass rounded-card p-5">
+        <h3 className="font-semibold text-[16px] text-white mb-1">UK Data Sources</h3>
+        {sources.loading ? (
+          <p className="text-sm text-white/30 py-3">Loading…</p>
+        ) : UK_SOURCES.map((key, i) => (
+          <ToggleRow key={key} label={SOURCE_LABELS[key]} enabled={sources.toggles[key] ?? true}
+            onToggle={() => sources.toggle(key)} isLast={i === UK_SOURCES.length - 1} />
+        ))}
       </div>
 
       {/* Schedule */}
-      <div>
-        <p className="text-xs text-white/40 uppercase tracking-wider mb-2">Schedule</p>
-        <div className="liquid-glass rounded-lg p-3 text-xs text-white/50">
-          Daily scrape runs at 2am UTC · Enrichment follows automatically
-        </div>
+      <div className="liquid-glass rounded-card p-5">
+        <h3 className="font-semibold text-[16px] text-white mb-2">Scrape Schedule</h3>
+        <p className="text-sm text-white/65">
+          Daily at <span className="text-white font-semibold">2:00 AM UTC</span> · Enrichment at <span className="text-white font-semibold">6:00 AM UTC</span>
+        </p>
       </div>
 
       {/* Pipeline */}
-      <div>
-        <p className="text-xs text-white/40 uppercase tracking-wider mb-2">Pipeline</p>
-        <div className="space-y-1.5 text-xs text-white/50">
-          {['Google Maps AU + UK', 'Website scraping → signal detection', 'Exa owner + email enrichment', 'Scoring → icebreaker + copy gen'].map(s => (
-            <div key={s} className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-purple-primary/60 flex-shrink-0" />
-              {s}
-            </div>
-          ))}
-        </div>
+      <div className="liquid-glass rounded-card p-5">
+        <h3 className="font-semibold text-[16px] text-white mb-3">Pipeline</h3>
+        {['Google Maps AU + UK', 'Website scraping → signal detection', 'Exa owner + email enrichment', 'Scoring → icebreaker + copy gen'].map((s, i, arr) => (
+          <div key={s} className="flex items-center gap-2.5 text-sm text-white/65 py-2.5"
+            style={{ borderBottom: i < arr.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-primary/60 flex-shrink-0" />
+            {s}
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -271,8 +322,9 @@ function EngineRoom({ onBack }: { onBack: () => void }) {
 type Tab = 'all' | 'preview' | 'hot';
 
 export default function LeadGen({ showEngine, onToggleEngine }: { showEngine: boolean; onToggleEngine: () => void }) {
-  const [activeTab, setActiveTab] = useState<Tab>('all');
+  const [activeTab, setActiveTab] = useState<Tab>('preview');
   const [selectedLead, setSelectedLead] = useState<AllLead | null>(null);
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
 
   const { stats } = useLeadPipelineStats();
   const { trigger, getState } = useTriggerRun();
@@ -301,7 +353,7 @@ export default function LeadGen({ showEngine, onToggleEngine }: { showEngine: bo
       <div style={{
         transformStyle: 'preserve-3d',
         transform: showEngine ? 'rotateY(180deg)' : 'rotateY(0deg)',
-        transition: 'transform 0.6s ease',
+        transition: 'transform 500ms ease-in-out',
         position: 'relative', height: '100%',
       }}>
 
@@ -310,14 +362,14 @@ export default function LeadGen({ showEngine, onToggleEngine }: { showEngine: bo
           style={{ backfaceVisibility: 'hidden', position: 'absolute', inset: 0 }}>
 
           {/* Stats */}
-          <div className="grid grid-cols-4 gap-2 flex-shrink-0">
+          <div className="grid grid-cols-4 gap-3 flex-shrink-0">
             <StatTile label="Found" value={stats.new} dim={stats.new === 0} />
             <StatTile label="Enriched" value={stats.enriched} dim={stats.enriched === 0} />
             <StatTile label="Scored" value={stats.scored} />
             <StatTile label="Outreached" value={stats.outreached} dim={stats.outreached === 0} />
           </div>
 
-          {/* Tab pills */}
+          {/* 3-pill nav */}
           <div className="flex items-center gap-1 p-1 rounded-button bg-white/5 flex-shrink-0">
             {(['all', 'preview', 'hot'] as Tab[]).map(t => (
               <button key={t} onClick={() => setActiveTab(t)}
@@ -330,9 +382,10 @@ export default function LeadGen({ showEngine, onToggleEngine }: { showEngine: bo
           {/* Content */}
           <div className="flex-1 min-h-0 overflow-y-auto">
 
+            {/* ── ALL ── */}
             {activeTab === 'all' && (
-              <div className="space-y-3">
-                <div className="relative">
+              <div className="space-y-2">
+                <div className="relative mb-3">
                   <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
@@ -340,24 +393,35 @@ export default function LeadGen({ showEngine, onToggleEngine }: { showEngine: bo
                     placeholder="Search companies…"
                     className="w-full pl-9 pr-4 py-2 rounded-button bg-white/5 border border-white/10 text-sm text-white/80 placeholder-white/30 focus:outline-none focus:border-purple-400/40" />
                 </div>
-                <div className="liquid-glass rounded-card divide-y divide-white/5">
-                  {allLeads.loading && allLeads.leads.length === 0 ? (
-                    <div className="p-6 text-center text-white/30 text-sm">Loading…</div>
-                  ) : allLeads.leads.length === 0 ? (
-                    <div className="p-6 text-center text-white/30 text-sm">No enriched leads yet</div>
-                  ) : allLeads.leads.map(lead => (
-                    <LeadRow key={lead.id} lead={lead} onClick={() => setSelectedLead(lead)} />
-                  ))}
-                </div>
-                {allLeads.hasMore && (
-                  <button onClick={allLeads.loadMore} disabled={allLeads.loading}
-                    className="w-full py-2 rounded-button text-xs text-white/50 hover:text-white/80 bg-white/5 hover:bg-white/8 transition-colors">
-                    {allLeads.loading ? 'Loading…' : `Load more (${(allLeads.total - allLeads.leads.length).toLocaleString()} remaining)`}
-                  </button>
+                {allLeads.loading && allLeads.leads.length === 0 ? (
+                  <div className="py-10 text-center text-white/30 text-sm">Loading…</div>
+                ) : allLeads.leads.length === 0 ? (
+                  <div className="liquid-glass rounded-card p-8 text-center">
+                    <p className="text-white/30 text-sm">No enriched leads yet.</p>
+                  </div>
+                ) : (
+                  <>
+                    {allLeads.leads.map(lead => (
+                      <LeadRow
+                        key={lead.id}
+                        lead={lead}
+                        isExpanded={expandedRowId === lead.id}
+                        onToggle={() => setExpandedRowId(expandedRowId === lead.id ? null : lead.id)}
+                        onEdit={() => setSelectedLead(lead)}
+                      />
+                    ))}
+                    {allLeads.hasMore && (
+                      <button onClick={allLeads.loadMore} disabled={allLeads.loading}
+                        className="w-full py-2.5 rounded-card text-xs text-white/50 hover:text-white/80 bg-white/5 hover:bg-white/8 transition-colors">
+                        {allLeads.loading ? 'Loading…' : `Load more (${(allLeads.total - allLeads.leads.length).toLocaleString()} remaining)`}
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             )}
 
+            {/* ── PREVIEW ── */}
             {activeTab === 'preview' && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -372,18 +436,19 @@ export default function LeadGen({ showEngine, onToggleEngine }: { showEngine: bo
                 </div>
                 {preview.loading
                   ? <div className="text-center py-8 text-white/30 text-sm">Loading preview…</div>
-                  : <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+                  : <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
                       {preview.leads.map(lead => <LeadCard key={lead.id} lead={lead} onClick={() => setSelectedLead(lead)} />)}
                     </div>}
               </div>
             )}
 
+            {/* ── HOT ── */}
             {activeTab === 'hot' && (
               <div className="space-y-3">
                 <p className="text-xs text-white/40">Top {hot.leads.length} of {hot.totalEnriched.toLocaleString()} enriched · click to edit copy</p>
                 {hot.loading
                   ? <div className="text-center py-8 text-white/30 text-sm">Loading…</div>
-                  : <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+                  : <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
                       {hot.leads.map(lead => <LeadCard key={lead.id} lead={lead} onClick={() => setSelectedLead(lead)} />)}
                     </div>}
               </div>

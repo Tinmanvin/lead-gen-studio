@@ -39,10 +39,10 @@ function Field({
   locked?: boolean;
 }) {
   const base =
-    'w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white/90 placeholder-white/30 focus:outline-none focus:border-purple-400/50 resize-none transition-colors';
+    'w-full bg-white/[0.06] border border-white/[0.1] rounded-lg px-3 py-2 text-sm text-white/90 placeholder-white/30 focus:outline-none focus:border-purple-400/40 resize-none transition-colors';
   return (
     <div className="space-y-1">
-      <label className="text-xs text-white/40 uppercase tracking-wider">{label}</label>
+      <label className="text-xs text-white/35 tracking-wide">{label}</label>
       {multiline ? (
         <textarea
           className={base}
@@ -123,7 +123,7 @@ export default function LeadDetailModal({ lead, onClose, onSaved }: Props) {
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className="liquid-glass w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl p-6 space-y-5"
+        className="liquid-glass w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl p-6 space-y-5"
         style={{ boxShadow: '0 24px 80px rgba(0,0,0,0.6)' }}
       >
         {/* Header */}
@@ -202,12 +202,12 @@ export default function LeadDetailModal({ lead, onClose, onSaved }: Props) {
         {/* Editable copy fields */}
         <div className="space-y-4 pt-1">
           <Field label="Icebreaker" value={icebreaker} onChange={setIcebreaker} multiline rows={2} />
-          <Field label="Email Subject" value={emailSubject} onChange={setEmailSubject} />
-          <Field label="Email Body" value={emailBody} onChange={setEmailBody} multiline rows={6} />
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Field label="LinkedIn Message" value={linkedinMsg} onChange={setLinkedinMsg} multiline rows={3} />
-            <Field label="WhatsApp Message" value={whatsappMsg} onChange={setWhatsappMsg} multiline rows={3} />
-            <Field label="Facebook Message" value={facebookMsg} onChange={setFacebookMsg} multiline rows={3} />
+          <Field label="Email subject" value={emailSubject} onChange={setEmailSubject} />
+          <Field label="Email body" value={emailBody} onChange={setEmailBody} multiline rows={6} />
+          <div className="space-y-4">
+            <Field label="LinkedIn message" value={linkedinMsg} onChange={setLinkedinMsg} multiline rows={3} />
+            <Field label="WhatsApp message" value={whatsappMsg} onChange={setWhatsappMsg} multiline rows={3} />
+            <Field label="Facebook message" value={facebookMsg} onChange={setFacebookMsg} multiline rows={3} />
           </div>
         </div>
 
