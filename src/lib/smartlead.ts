@@ -21,34 +21,32 @@ async function sl<T>(path: string, method = "GET", body?: unknown): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-// In-memory campaign ID cache — resets on cold start, fine for Trigger.dev tasks
-const campaignCache = new Map<string, number>();
+export type CampaignSource = "indeed" | "outreach";
 
-export const CAMPAIGN_NAMES = {
-  indeed: "Atlas AI — Indeed Pipeline",
-  outreach: "Atlas AI — Outreach Pipeline",
-} as const;
+// Hardcoded IDs for known campaigns — bypasses name lookup and campaign creation entirely
+const HARDCODED_IDS: Partial<Record<CampaignSource, number>> = {
+  outreach: 3205641,
+};
 
-export type CampaignSource = keyof typeof CAMPAIGN_NAMES;
+// In-memory cache for dynamically resolved campaigns (e.g. indeed)
+const campaignCache = new Map<CampaignSource, number>();
 
 export async function getOrCreateCampaign(source: CampaignSource): Promise<number> {
-  const name = CAMPAIGN_NAMES[source];
-  if (campaignCache.has(name)) return campaignCache.get(name)!;
+  if (HARDCODED_IDS[source]) return HARDCODED_IDS[source]!;
+  if (campaignCache.has(source)) return campaignCache.get(source)!;
 
-  const campaigns = await sl<{ id: number; name: string }[]>(
-    "/campaigns?limit=100&offset=0"
-  );
+  const campaigns = await sl<{ id: number; name: string }[]>("/campaigns");
+  const name = source === "indeed" ? "Atlas AI — Indeed Pipeline" : `Atlas AI — ${source} Pipeline`;
 
-  const existing = campaigns.find((c) => c.name === name);
+  const existing = campaigns.find((c) => c.id && c.name?.includes(source === "indeed" ? "Indeed" : source));
   if (existing) {
-    campaignCache.set(name, existing.id);
+    campaignCache.set(source, existing.id);
     return existing.id;
   }
 
   const created = await sl<{ id: number }>("/campaigns/create", "POST", {
     name,
     client_id: null,
-    track_settings: ["DONT_TRACK_EMAIL_OPEN", "TRACK_EMAIL_CLICK"],
     scheduler_cron_value: {
       timezone: "UTC",
       days_of_the_week: [1, 2, 3, 4, 5],
@@ -62,7 +60,6 @@ export async function getOrCreateCampaign(source: CampaignSource): Promise<numbe
 
   const campaignId = created.id;
 
-  // Sequence: subject + body injected per-lead as custom fields
   await sl(`/campaigns/${campaignId}/sequences`, "POST", {
     sequences: [
       {
@@ -81,7 +78,7 @@ export async function getOrCreateCampaign(source: CampaignSource): Promise<numbe
 
   await sl(`/campaigns/${campaignId}/status`, "POST", { status: "ACTIVE" });
 
-  campaignCache.set(name, campaignId);
+  campaignCache.set(source, campaignId);
   return campaignId;
 }
 
@@ -115,12 +112,6 @@ export async function addLeadToSmartlead(
           },
         },
       ],
-      settings: {
-        ignore_global_block_list: false,
-        ignore_unsubscribe_list: false,
-        ignore_communication_limit: false,
-        ignore_prospect_email_list: false,
-      },
     });
     return { ok: true };
   } catch (err) {

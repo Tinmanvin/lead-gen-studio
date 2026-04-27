@@ -14,6 +14,7 @@ const TASK_MAP: Record<string, string[]> = {
   "main-enrich":      ["enrich-new-leads"],
   "indeed-scrape":    ["indeed-hijacker-scrape-orchestrator"],
   "indeed-enrich":    ["indeed-hijacker-enrich-orchestrator"],
+  "outreach-send":    ["outreach-send-orchestrator"],
 };
 
 // Minimal ScheduledPayload — our orchestrators only log this, don't depend on it
