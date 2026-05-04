@@ -177,6 +177,15 @@ export default function SettingsScreen() {
                       {isEditing && (
                         <div className="mt-4 space-y-3">
                           <div>
+                            <p className="text-xs uppercase tracking-wider text-white/35 mb-1">Name</p>
+                            <input
+                              type="text"
+                              className="w-full bg-white/[0.02] border border-white/[0.08] rounded-input px-3 py-2 text-sm text-white/80 focus:outline-none focus:border-purple-primary/50"
+                              value={outreachEdits[t.id]?.name ?? t.name}
+                              onChange={(e) => setOutreachEdits((prev) => ({ ...prev, [t.id]: { ...prev[t.id], name: e.target.value } }))}
+                            />
+                          </div>
+                          <div>
                             <p className="text-xs uppercase tracking-wider text-white/35 mb-1">Subject</p>
                             <input
                               type="text"
