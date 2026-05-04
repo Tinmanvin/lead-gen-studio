@@ -4,7 +4,7 @@ import { useGeoSettings } from '@/hooks/useSettings';
 import { useOutreachTemplates, type OutreachTemplate } from '@/hooks/useOutreachTemplates';
 
 const DEMO_TYPES = ['email_only', 'widget', 'redesign', 'new_site', 'compound'] as const;
-const STOCK_VARS = ['{{company}}', '{{dm_name}}', '{{icebreaker}}', '{{demo_url}}', '{{demo_one_liner}}', '{{niche}}'];
+const STOCK_VARS = ['{{first_name}}', '{{company}}', '{{dm_name}}', '{{icebreaker}}', '{{demo_url}}', '{{demo_one_liner}}', '{{niche}}'];
 
 const emptyNew = { name: '', demo_type: 'email_only', subject_template: '', body_prompt: '' };
 

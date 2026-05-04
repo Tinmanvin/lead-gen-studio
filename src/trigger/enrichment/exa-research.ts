@@ -213,11 +213,15 @@ export const exaResearch = schemaTask({
       return { success: false, reason: "no_template" };
     }
 
+    const fullName = lead.dm_name ?? "";
+    const firstName = fullName.split(" ")[0] || "there";
+
     const vars: Record<string, string> = {
       icebreaker:     icebreaker || "",
+      first_name:     firstName,
       company:        lead.company_name ?? "",
       company_name:   lead.company_name ?? "",
-      dm_name:        lead.dm_name ?? "there",
+      dm_name:        fullName || "there",
       niche:          lead.niche ?? "business",
       demo_url:       demoUrl ?? "",
       demo_one_liner: demoOneLiner,
