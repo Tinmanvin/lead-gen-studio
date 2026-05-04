@@ -15,6 +15,8 @@ export function useOutreachTemplates() {
   const [templates, setTemplates] = useState<OutreachTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null); // demo_type being saved
+  const [creating, setCreating] = useState(false);
+  const [removing, setRemoving] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -51,5 +53,29 @@ export function useOutreachTemplates() {
     }
   }, []);
 
-  return { templates, loading, saving, save, toggleActive };
+  const create = useCallback(async (fields: { name: string; demo_type: string; subject_template: string; body_prompt: string }) => {
+    setCreating(true);
+    const { data, error } = await supabase
+      .from('outreach_templates')
+      .insert({ ...fields, active: true, updated_at: new Date().toISOString() })
+      .select()
+      .single();
+    setCreating(false);
+    if (!error && data) {
+      setTemplates((prev) => [...prev, data as OutreachTemplate]);
+    }
+    return !error;
+  }, []);
+
+  const remove = useCallback(async (id: string) => {
+    setRemoving(id);
+    const { error } = await supabase.from('outreach_templates').delete().eq('id', id);
+    setRemoving(null);
+    if (!error) {
+      setTemplates((prev) => prev.filter((t) => t.id !== id));
+    }
+    return !error;
+  }, []);
+
+  return { templates, loading, saving, creating, removing, save, create, remove, toggleActive };
 }

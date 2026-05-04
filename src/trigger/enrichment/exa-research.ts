@@ -28,8 +28,8 @@ async function researchCompanyWithExa(
   if (!exaApiKey) return "";
 
   const query = website
-    ? `site:${website} OR "${companyName}" services reviews`
-    : `"${companyName}" services reviews complaints`;
+    ? `site:${website} OR "${companyName}" reviews OR projects OR news OR facebook OR instagram`
+    : `"${companyName}" reviews OR news OR recent projects OR instagram`;
 
   try {
     const res = await fetch("https://api.exa.ai/search", {
@@ -129,53 +129,51 @@ async function generateIcebreaker(
   companyName: string,
   dmName: string | null,
   niche: string,
-  signals: string[],
   exaResearch: string
 ): Promise<string> {
-  const signalDescriptions: Record<string, string> = {
-    missed_call: "reviews mention missed calls or no callbacks",
-    after_hours_gap: "business shows as closed after hours but operates in an always-on niche",
-    low_rating: "rating is between 3.2 and 3.8 — fixable, motivated",
-    no_chatbot: "website has no live chat or AI assistant",
-    no_booking_link: "no online booking system detected",
-    no_ssl: "website has security issues",
-    ads_no_capture: "paying for leads without an automated capture system",
-    wordpress_no_chat: "WordPress site with no lead capture",
-  };
+  if (!exaResearch) return "";
 
-  const signalText = signals
-    .map((s) => signalDescriptions[s] ?? s)
-    .join(", ");
-
-  const prompt = `You write cold outreach icebreakers. They must sound completely human — like a quick observation, never a pitch.
+  const prompt = `You write personalised cold email openers for a sales agency. Your only job is to write an icebreaker that sounds like the sender spent 5 minutes genuinely looking at this business before emailing. It must earn the next sentence — nothing more.
 
 Company: ${companyName}
 Niche: ${niche}
 Decision maker: ${dmName ?? "the owner"}
-Pain signals detected: ${signalText}
 
-${exaResearch ? `Research about this company:\n${exaResearch}\n` : ""}
+Research found about this company:
+${exaResearch}
 
-Write ONE icebreaker sentence (max 25 words). Rules:
-- Reference ONE specific signal or piece of research (not generic)
-- Sound like you noticed something, not like you ran a scan
+Write 1–2 sentences. Rules:
+- Reference ONE specific, real, observable thing from the research — an ad they're running, a project they completed, a review they received, something from their social media or website that genuinely stood out
+- Sound like a human observation, not a system scan
 - No emojis, no exclamation marks, no "I hope this finds you well"
-- Do NOT mention AI, automation, or your company
-- End with a soft curiosity hook, not a pitch
+- Do NOT mention AI, automation, or your company at all
+- Do NOT reference technical gaps or problems — that is not your job here
+- The icebreaker is purely about THEM — a genuine noticing
 
-Example good: "Noticed a few Google reviews mention calls going to voicemail after hours — wondered if that's something you've been looking at fixing."
-Example bad: "I saw your business could benefit from AI automation solutions."
+Good examples:
+"Noticed you recently wrapped the Smith & Co office fitout — the exposed concrete finish on the reception looks sharp."
+"Came across a review from a client who said you were the only plumber who actually showed up on time in three tries — that kind of rep is rare."
+"Spotted your Meta ads for the summer campaign — the before and after creative is doing its job."
+"Saw you just picked up the Henderson build — congrats, that one's been in the pipeline for a while from what I could tell."
 
-Write only the icebreaker. Nothing else.`;
+Bad examples:
+"I noticed your business could benefit from AI automation."
+"Your website has some technical issues I could help with."
+"Noticed calls going to voicemail after hours — wondered if that's something you've been looking at fixing."
+"I saw your business and thought you might be interested in our services."
+
+If the research contains nothing specific enough to reference, respond with exactly: NO_RESEARCH
+
+Write only the icebreaker or NO_RESEARCH. Nothing else.`;
 
   const response = await anthropic.messages.create({
     model: "claude-haiku-4-5-20251001",
-    max_tokens: 100,
+    max_tokens: 150,
     messages: [{ role: "user", content: prompt }],
   });
 
   const text = response.content[0].type === "text" ? response.content[0].text.trim() : "";
-  return text;
+  return text === "NO_RESEARCH" ? "" : text;
 }
 
 export const exaResearch = schemaTask({
@@ -223,7 +221,6 @@ export const exaResearch = schemaTask({
       lead.company_name,
       lead.dm_name,
       lead.niche ?? "business",
-      signals,
       exaResearchText,
     );
 
