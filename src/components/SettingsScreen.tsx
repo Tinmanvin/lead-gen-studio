@@ -4,7 +4,7 @@ import { useGeoSettings } from '@/hooks/useSettings';
 import { useOutreachTemplates, type OutreachTemplate } from '@/hooks/useOutreachTemplates';
 
 const DEMO_TYPES = ['email_only', 'widget', 'redesign', 'new_site', 'compound'] as const;
-const STOCK_VARS = ['{{company}}', '{{dm_name}}', '{{icebreaker}}', '{{demo_url}}'];
+const STOCK_VARS = ['{{company}}', '{{dm_name}}', '{{icebreaker}}', '{{demo_url}}', '{{demo_one_liner}}', '{{niche}}'];
 
 const emptyNew = { name: '', demo_type: 'email_only', subject_template: '', body_prompt: '' };
 
@@ -104,10 +104,10 @@ export default function SettingsScreen() {
                       />
                     </div>
                     <div>
-                      <p className="text-xs uppercase tracking-wider text-white/35 mb-1">Body Prompt</p>
+                      <p className="text-xs uppercase tracking-wider text-white/35 mb-1">Email Body</p>
                       <textarea
                         className="w-full h-36 bg-white/[0.02] border border-white/[0.08] rounded-input p-3 text-sm text-white/80 resize-none focus:outline-none focus:border-purple-primary/50 font-mono"
-                        placeholder="Write instructions for Claude on how to generate this email…"
+                        placeholder="Write the actual email. Use {{icebreaker}}, {{company}}, {{dm_name}}, {{demo_url}} etc. — swapped in per lead."
                         value={newTemplate.body_prompt}
                         onChange={(e) => setNewTemplate((p) => ({ ...p, body_prompt: e.target.value }))}
                       />
@@ -186,7 +186,7 @@ export default function SettingsScreen() {
                             />
                           </div>
                           <div>
-                            <p className="text-xs uppercase tracking-wider text-white/35 mb-1">Body Prompt</p>
+                            <p className="text-xs uppercase tracking-wider text-white/35 mb-1">Email Body</p>
                             <textarea
                               className="w-full h-36 bg-white/[0.02] border border-white/[0.08] rounded-input p-3 text-sm text-white/80 resize-none focus:outline-none focus:border-purple-primary/50 font-mono"
                               value={outreachEdits[t.id]?.body_prompt ?? t.body_prompt}

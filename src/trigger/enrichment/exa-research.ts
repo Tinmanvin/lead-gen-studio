@@ -1,9 +1,10 @@
 /**
- * Exa Research + Icebreaker Generation
- * Runs on top-scored leads (value_add_score >= 3) after scoring.
- * Uses Exa to research the company, then Claude to write a
- * personalised icebreaker referencing a specific detected pain.
- * This is what makes the outreach NOT look like bulk cold email.
+ * Exa Research + Icebreaker Generation + Email Assembly
+ * Runs on top-scored leads (value_add_score >= 2) after scoring.
+ * 1. Exa researches the company (web, reviews, social, news)
+ * 2. Claude writes a personalised icebreaker — research-first, purely about them
+ * 3. Email assembled from the user's outreach template via variable substitution
+ *    — no Claude involved in body copy, template is source of truth
  */
 import { schemaTask, logger } from "@trigger.dev/sdk/v3";
 import { z } from "zod";
@@ -11,6 +12,15 @@ import Anthropic from "@anthropic-ai/sdk";
 import { supabase } from "../../lib/supabase-server.js";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+// Auto-populated into {{demo_one_liner}} in templates when a demo has been built
+const DEMO_ONE_LINERS: Record<string, string> = {
+  widget:     "built a live AI chat widget for your site that captures enquiries around the clock",
+  redesign:   "put together a refreshed version of your site to show what it could look like",
+  new_site:   "built you a starter site so you can see what an online presence looks like",
+  compound:   "rebuilt your site and added a live AI chat widget capturing leads 24/7",
+  email_only: "",
+};
 
 interface ExaResult {
   title?: string;
@@ -57,71 +67,10 @@ async function researchCompanyWithExa(
       .slice(0, 3)
       .join("\n\n");
 
-    return snippets.slice(0, 3000); // Cap context length
+    return snippets.slice(0, 3000);
   } catch (err) {
     logger.warn("Exa research failed", { company: companyName, error: String(err) });
     return "";
-  }
-}
-
-interface ChannelCopy {
-  email_subject: string;
-  email_body: string;
-  linkedin_msg: string;
-  whatsapp_msg: string;
-  facebook_msg: string;
-}
-
-async function generateChannelCopy(
-  companyName: string,
-  dmName: string | null,
-  niche: string,
-  signals: string[],
-  icebreaker: string,
-  demoType: string
-): Promise<ChannelCopy> {
-  const name = dmName ?? "there";
-  const signalList = signals.slice(0, 3).join(", ") || "missing key digital systems";
-  const hasDemo = ["WIDGET", "REDESIGN", "NEW_SITE", "COMPOUND"].includes(demoType);
-
-  const prompt = `You write multi-channel outreach copy for a cold outreach campaign. Write all 5 pieces below. Be concise, human, no fluff.
-
-Context:
-- Company: ${companyName}
-- Niche: ${niche}
-- Decision maker: ${name}
-- Pain signals: ${signalList}
-- Icebreaker (use this to open email): "${icebreaker}"
-- Demo available: ${hasDemo ? "yes" : "no"}
-
-Write exactly this JSON (no markdown, no extra text):
-{
-  "email_subject": "<10 words max, curiosity not clickbait>",
-  "email_body": "<3-4 sentences. Start with icebreaker. Explain 1 specific gap. Soft ask for 10 min call. 80 words max.>",
-  "linkedin_msg": "<connection request note, 280 chars max. Reference one specific signal. No pitch. End with question.>",
-  "whatsapp_msg": "<casual 2-sentence intro. State you noticed something specific about their business. Ask if ok to share. 60 words max.>",
-  "facebook_msg": "<friendly 2-sentence message. Reference their business by name. Ask one soft question. 50 words max.>"
-}`;
-
-  try {
-    const response = await anthropic.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 600,
-      messages: [{ role: "user", content: prompt }],
-    });
-
-    const text = response.content[0].type === "text" ? response.content[0].text.trim() : "{}";
-    const parsed = JSON.parse(text) as ChannelCopy;
-    return parsed;
-  } catch (err) {
-    logger.warn("Channel copy generation failed", { company: companyName, error: String(err) });
-    return {
-      email_subject: `Quick question about ${companyName}`,
-      email_body: `${icebreaker}\n\nI work with ${niche} businesses on AI-powered systems that help capture and convert more leads. Worth a 10-minute chat?`,
-      linkedin_msg: `Hi ${name}, I noticed ${signalList.split(",")[0]} at ${companyName}. Would love to connect and share something relevant.`,
-      whatsapp_msg: `Hi ${name}, spotted something interesting about ${companyName}. Mind if I share a quick thought?`,
-      facebook_msg: `Hi ${name}! I came across ${companyName} and noticed something worth mentioning. Happy to connect?`,
-    };
   }
 }
 
@@ -176,6 +125,25 @@ Write only the icebreaker or NO_RESEARCH. Nothing else.`;
   return text === "NO_RESEARCH" ? "" : text;
 }
 
+function substituteVars(template: string, vars: Record<string, string>): string {
+  return template.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? "");
+}
+
+async function fetchOutreachTemplate(
+  userId: string,
+  demoType: string
+): Promise<{ subject_template: string; body_prompt: string } | null> {
+  const { data } = await supabase
+    .from("outreach_templates")
+    .select("subject_template, body_prompt")
+    .eq("user_id", userId)
+    .eq("demo_type", demoType)
+    .eq("active", true)
+    .limit(1)
+    .single();
+  return data ?? null;
+}
+
 export const exaResearch = schemaTask({
   id: "exa-research",
   schema: z.object({
@@ -187,34 +155,27 @@ export const exaResearch = schemaTask({
   run: async (payload) => {
     const { leadId, userId } = payload;
 
-    // Fetch lead + score to confirm it's worth researching
-    const [leadResult, scoreResult, signalsResult] = await Promise.all([
+    const [leadResult, scoreResult] = await Promise.all([
       supabase.from("leads").select("*").eq("id", leadId).eq("user_id", userId).single(),
       supabase.from("lead_scores").select("value_add_score, composite_score").eq("lead_id", leadId).single(),
-      supabase.from("lead_signals").select("signal_type").eq("lead_id", leadId),
     ]);
 
     if (leadResult.error || !leadResult.data) return { success: false };
 
     const lead = leadResult.data;
 
-    // Respect manual edits — never overwrite locked copy
     if ((lead as Record<string, unknown>).copy_locked) {
-      logger.log(`Skipping Exa research for ${lead.company_name} — copy is locked`);
+      logger.log(`Skipping — copy locked for ${lead.company_name}`);
       return { success: false, reason: "copy_locked" };
     }
 
     const score = scoreResult.data;
-    const signals = (signalsResult.data ?? []).map((s) => s.signal_type);
-
-    // Only research leads with value_add_score >= 2 (worth personalising)
     if (!score || score.value_add_score < 2) {
-      logger.log(`Skipping Exa research for ${lead.company_name} — score too low (${score?.value_add_score ?? 0})`);
+      logger.log(`Skipping — score too low for ${lead.company_name} (${score?.value_add_score ?? 0})`);
       return { success: false, reason: "score_too_low" };
     }
 
     logger.log(`Researching ${lead.company_name} with Exa`);
-
     const exaResearchText = await researchCompanyWithExa(lead.company_name, lead.website);
 
     const icebreaker = await generateIcebreaker(
@@ -224,36 +185,59 @@ export const exaResearch = schemaTask({
       exaResearchText,
     );
 
-    if (icebreaker) {
-      // Fetch demo_type to inform channel copy
-      const demoType = (lead as Record<string, unknown>).demo_type as string ?? "EMAIL_ONLY";
+    // Normalise demo_type: scorer writes uppercase (WIDGET), templates store lowercase (widget)
+    const rawDemoType = (lead as Record<string, unknown>).demo_type as string ?? "EMAIL_ONLY";
+    const demoType = rawDemoType.toLowerCase();
+    const demoUrl = (lead as Record<string, unknown>).demo_url as string | null ?? null;
+    const demoOneLiner = DEMO_ONE_LINERS[demoType] ?? "";
+    const needsDemo = demoType !== "email_only";
 
-      const channelCopy = await generateChannelCopy(
-        lead.company_name,
-        lead.dm_name,
-        lead.niche ?? "business",
-        signals,
-        icebreaker,
-        demoType,
-      );
-
+    // Demo-type leads must wait for demo_url before email can be assembled
+    if (needsDemo && !demoUrl) {
       await supabase
         .from("leads")
         .update({
           exa_research: exaResearchText || null,
-          icebreaker,
-          email_subject: channelCopy.email_subject,
-          email_body: channelCopy.email_body,
-          linkedin_msg: channelCopy.linkedin_msg,
-          whatsapp_msg: channelCopy.whatsapp_msg,
-          facebook_msg: channelCopy.facebook_msg,
+          icebreaker: icebreaker || null,
         })
         .eq("id", leadId);
 
-      logger.log(`Icebreaker + channel copy generated for ${lead.company_name}`);
-      return { success: true, icebreaker };
+      logger.log(`Icebreaker saved for ${lead.company_name} — awaiting demo_url (${demoType})`);
+      return { success: true, reason: "awaiting_demo", icebreaker };
     }
 
-    return { success: false, reason: "generation_failed" };
+    // Fetch the outreach template for this demo type
+    const template = await fetchOutreachTemplate(userId, demoType);
+    if (!template) {
+      logger.warn(`No active template for demo_type=${demoType}, user=${userId}`);
+      return { success: false, reason: "no_template" };
+    }
+
+    const vars: Record<string, string> = {
+      icebreaker:     icebreaker || "",
+      company:        lead.company_name ?? "",
+      company_name:   lead.company_name ?? "",
+      dm_name:        lead.dm_name ?? "there",
+      niche:          lead.niche ?? "business",
+      demo_url:       demoUrl ?? "",
+      demo_one_liner: demoOneLiner,
+    };
+
+    const emailBody    = substituteVars(template.body_prompt, vars);
+    const emailSubject = substituteVars(template.subject_template, vars);
+
+    await supabase
+      .from("leads")
+      .update({
+        exa_research:   exaResearchText || null,
+        icebreaker:     icebreaker || null,
+        demo_one_liner: demoOneLiner || null,
+        email_body:     emailBody,
+        email_subject:  emailSubject,
+      })
+      .eq("id", leadId);
+
+    logger.log(`Email assembled from template for ${lead.company_name} (${demoType})`);
+    return { success: true, icebreaker, demoType };
   },
 });
