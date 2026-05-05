@@ -5,6 +5,7 @@ export type TriggerTask =
   | 'main-full-run'
   | 'indeed-full-run'
   | 'indeed-send'
+  | 'indeed-send-orchestrator'
   | 'main-scrape'
   | 'main-enrich'
   | 'indeed-scrape'

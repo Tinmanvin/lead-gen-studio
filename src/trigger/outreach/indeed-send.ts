@@ -46,7 +46,7 @@ export const indeedSend = schemaTask({
       firstName: "there",
       companyName: job.company_name,
       subject: job.email_subject,
-      body: job.email_body,
+      body: job.email_body.replace(/\n/g, "<br>"),
     });
 
     if (!result.ok) {
@@ -56,7 +56,7 @@ export const indeedSend = schemaTask({
 
     await supabase
       .from("indeed_jobs")
-      .update({ status: "queued", sent_at: new Date().toISOString() })
+      .update({ status: "sent", sent_at: new Date().toISOString() })
       .eq("id", jobId);
 
     logger.log(`Queued ${job.dm_email} in Smartlead`, { company: job.company_name, jobId });

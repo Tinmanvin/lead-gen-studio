@@ -350,15 +350,16 @@ async function scrapeAdzuna(
   country: "AU" | "UK"
 ): Promise<RawJob[]> {
   const countryCode = country === "AU" ? "au" : "gb";
-  const params = new URLSearchParams({
+  const baseParams: Record<string, string> = {
     app_id: ADZUNA_APP_ID,
     app_key: ADZUNA_APP_KEY,
     what: searchTerm,
-    where: location,
     max_days_old: "3",
     results_per_page: "10",
     sort_by: "date",
-  });
+  };
+  if (location) baseParams.where = location;
+  const params = new URLSearchParams(baseParams);
 
   try {
     const res = await fetch(
@@ -397,12 +398,13 @@ async function scrapeReedApi(
   searchTerm: string,
   location: string
 ): Promise<RawJob[]> {
-  const params = new URLSearchParams({
+  const reedParams: Record<string, string> = {
     keywords: searchTerm,
-    locationName: location,
     daysAgedAtMost: "3",
     resultsToTake: "10",
-  });
+  };
+  if (location) reedParams.locationName = location;
+  const params = new URLSearchParams(reedParams);
 
   // Reed uses Basic auth: API key as username, empty password
   const auth = Buffer.from(`${REED_API_KEY}:`).toString("base64");
@@ -501,7 +503,9 @@ async function scrapeSeek(searchTerm: string, location: string): Promise<RawJob[
 
 async function scrapeReed(searchTerm: string, location: string): Promise<RawJob[]> {
   const termSlug = searchTerm.toLowerCase().replace(/\s+/g, "-");
-  const url = `https://www.reed.co.uk/jobs/${termSlug}-jobs-in-${location}?dateCreatedOffSet=3`;
+  const url = location
+    ? `https://www.reed.co.uk/jobs/${termSlug}-jobs-in-${location}?dateCreatedOffSet=3`
+    : `https://www.reed.co.uk/jobs/${termSlug}?dateCreatedOffSet=3`;
 
   const browser = await puppeteer.launch({
     headless: true,
@@ -564,7 +568,9 @@ async function scrapeReed(searchTerm: string, location: string): Promise<RawJob[
 
 async function scrapeTotaljobs(searchTerm: string, location: string): Promise<RawJob[]> {
   const termSlug = searchTerm.toLowerCase().replace(/\s+/g, "-");
-  const url = `https://www.totaljobs.com/jobs/${termSlug}/in-${location}?postedin=3`;
+  const url = location
+    ? `https://www.totaljobs.com/jobs/${termSlug}/in-${location}?postedin=3`
+    : `https://www.totaljobs.com/jobs/${termSlug}?postedin=3`;
 
   const browser = await puppeteer.launch({
     headless: true,

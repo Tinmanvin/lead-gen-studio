@@ -10,8 +10,8 @@ import { task, batch, logger } from "@trigger.dev/sdk/v3";
 import { indeedSend } from "./indeed-send.js";
 import { supabase } from "../../lib/supabase-server.js";
 
-// Hard cap: Smartlead Base plan = 6,000/month → ~272/working day
-const DAILY_CAP = 270;
+// 6,000/month across 30 days = 200/day
+const DAILY_CAP = 200;
 
 export const indeedSendOrchestrator = task({
   id: "indeed-send-orchestrator",

@@ -1,29 +1,26 @@
 /**
  * Indeed Hijacker Orchestrator
  *
- * 3am UTC — scrapes all 4 job boards across all categories + markets
- * 7am UTC — enriches all newly scraped jobs (website + email + email gen)
+ * 6pm UTC — scrapes all job boards across all categories + markets
+ * 9pm UTC — enriches all newly scraped jobs (website + email + email gen)
  *
  * Board coverage:
- *   AU: Indeed AU (5 cities) + Seek (5 cities)
- *   UK: Indeed UK (5 cities) + Reed (5 cities) + Totaljobs (5 cities)
+ *   AU: Adzuna AU (5 cities) + Seek (5 cities)
+ *   UK: Adzuna UK (nationwide) + Reed API (nationwide) + Totaljobs (nationwide)
  *
- * Categories: receptionist, intake_coordinator, live_chat, sdr, admin,
- *             after_hours, social (7 categories, each with multiple search terms)
+ * Categories: receptionist, intake_coordinator, live_chat, sdr, admin, after_hours
  */
 import { schedules, batch, logger } from "@trigger.dev/sdk/v3";
 import {
   indeedHijackerScrape,
   JOB_CATEGORIES,
   AU_CITIES_INDEED,
-  UK_CITIES_INDEED,
   AU_CITIES_SEEK,
-  UK_CITIES_REED,
 } from "../scrapers/indeed-hijacker.js";
 import { indeedEnrichment } from "../enrichment/indeed-enrichment.js";
 import { supabase } from "../../lib/supabase-server.js";
 
-const UK_CITIES_TOTALJOBS = UK_CITIES_REED; // Same cities
+const ENRICHMENT_CAP = 500;
 
 async function fireBatch(
   jobs: Array<{ id: string; payload: Record<string, unknown> }>,
@@ -47,12 +44,12 @@ async function getUserId(): Promise<string | null> {
 }
 
 // ─────────────────────────────────────────────
-// Scrape Orchestrator — 3am UTC
+// Scrape Orchestrator — 6pm UTC (1am BKK)
 // ─────────────────────────────────────────────
 
 export const indeedHijackerScrapeOrchestrator = schedules.task({
   id: "indeed-hijacker-scrape-orchestrator",
-  cron: "0 3 * * *",
+  cron: "0 18 * * *",
   machine: "small-1x",
   maxDuration: 600,
   run: async (payload) => {
@@ -64,90 +61,48 @@ export const indeedHijackerScrapeOrchestrator = schedules.task({
       return { success: false };
     }
 
-    // Build all scrape payloads
     const allJobs: Array<{ id: string; payload: Record<string, unknown> }> = [];
 
     for (const [categoryKey, categoryConfig] of Object.entries(JOB_CATEGORIES)) {
-      // Skip social (lower priority) for now — can re-enable manually
       if (categoryKey === "social") continue;
 
-      // Use first 3 search terms per category to avoid over-scraping
       const terms = categoryConfig.searchTerms.slice(0, 3);
 
       for (const searchTerm of terms) {
-        // Adzuna AU — 5 cities
+        // ── AU boards — per city ──────────────────────────────────────
         for (const city of AU_CITIES_INDEED) {
           allJobs.push({
             id: indeedHijackerScrape.id,
-            payload: {
-              board: "adzuna_au",
-              searchTerm,
-              category: categoryKey,
-              location: city,
-              userId,
-            },
+            payload: { board: "adzuna_au", searchTerm, category: categoryKey, location: city, userId },
           });
         }
 
-        // Seek AU — 5 cities (Puppeteer)
         for (const city of AU_CITIES_SEEK) {
           allJobs.push({
             id: indeedHijackerScrape.id,
-            payload: {
-              board: "seek",
-              searchTerm,
-              category: categoryKey,
-              location: city,
-              userId,
-            },
+            payload: { board: "seek", searchTerm, category: categoryKey, location: city, userId },
           });
         }
 
-        // Adzuna UK — 5 cities
-        for (const city of UK_CITIES_INDEED) {
-          allJobs.push({
-            id: indeedHijackerScrape.id,
-            payload: {
-              board: "adzuna_uk",
-              searchTerm,
-              category: categoryKey,
-              location: city,
-              userId,
-            },
-          });
-        }
+        // ── UK boards — nationwide (empty location = no city restriction) ──
+        allJobs.push({
+          id: indeedHijackerScrape.id,
+          payload: { board: "adzuna_uk", searchTerm, category: categoryKey, location: "", userId },
+        });
 
-        // Reed UK — official API — 5 cities
-        for (const city of UK_CITIES_REED) {
-          allJobs.push({
-            id: indeedHijackerScrape.id,
-            payload: {
-              board: "reed_api",
-              searchTerm,
-              category: categoryKey,
-              location: city,
-              userId,
-            },
-          });
-        }
+        allJobs.push({
+          id: indeedHijackerScrape.id,
+          payload: { board: "reed_api", searchTerm, category: categoryKey, location: "", userId },
+        });
 
-        // Totaljobs UK — 5 cities (Puppeteer)
-        for (const city of UK_CITIES_TOTALJOBS) {
-          allJobs.push({
-            id: indeedHijackerScrape.id,
-            payload: {
-              board: "totaljobs",
-              searchTerm,
-              category: categoryKey,
-              location: city,
-              userId,
-            },
-          });
-        }
+        allJobs.push({
+          id: indeedHijackerScrape.id,
+          payload: { board: "totaljobs", searchTerm, category: categoryKey, location: "", userId },
+        });
       }
     }
 
-    logger.log(`Firing ${allJobs.length} scrape tasks across all boards + categories`);
+    logger.log(`Firing ${allJobs.length} scrape tasks`);
     await fireBatch(allJobs, "Indeed Hijacker Scrape");
 
     return { success: true, tasksTriggered: allJobs.length };
@@ -155,18 +110,17 @@ export const indeedHijackerScrapeOrchestrator = schedules.task({
 });
 
 // ─────────────────────────────────────────────
-// Enrich Orchestrator — 7am UTC
+// Enrich Orchestrator — 9pm UTC (4am BKK)
 // ─────────────────────────────────────────────
 
 export const indeedHijackerEnrichOrchestrator = schedules.task({
   id: "indeed-hijacker-enrich-orchestrator",
-  cron: "0 7 * * *",
+  cron: "0 21 * * *",
   machine: "small-1x",
   maxDuration: 600,
   run: async () => {
     logger.log("Indeed Hijacker enrichment starting");
 
-    // Fetch all jobs scraped today with status='found' (not yet enriched)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -175,7 +129,7 @@ export const indeedHijackerEnrichOrchestrator = schedules.task({
       .select("id")
       .eq("status", "found")
       .gte("created_at", today.toISOString())
-      .limit(200);
+      .limit(ENRICHMENT_CAP);
 
     if (error || !jobs?.length) {
       logger.log("No jobs to enrich", { error: error?.message });

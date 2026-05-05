@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useIndeedJobs } from '@/hooks/useIndeedJobs';
 import { useIndeedSettings } from '@/hooks/useIndeedConfig';
 import { useTriggerRun } from '@/hooks/useTriggerRun';
-import { supabase } from '@/lib/supabase';
 import IndeedConfigPanel from './IndeedConfigPanel';
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -91,53 +90,14 @@ function RunBtn({
 export default function IndeedScreen({ showConfig }: { showConfig?: boolean }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const { settings } = useIndeedSettings();
-  const { jobs, stats, loading, clearToday, queueJob, dequeueJob, queueAll, dequeueAll } = useIndeedJobs(50, settings.daily_cap);
+  const { jobs, stats, loading, clearToday, queueJob, dequeueJob, queueAll, dequeueAll } = useIndeedJobs(200, settings.daily_cap);
   const { trigger, getState, getError } = useTriggerRun();
   const [clearing, setClearing] = useState(false);
-  const [sendState, setSendState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const sendTargetRef = useRef<number>(0);
-  const sentTotalRef = useRef<number>(0);
 
   const sentTotal = stats.sent;
   const cap = stats.cap;
   const readyCount = jobs.filter((j) => j.status === 'queued').length;
   const approvedCount = stats.approved;
-
-  // Keep ref in sync with latest stats.sent so the polling closure reads fresh values
-  sentTotalRef.current = sentTotal;
-
-  const handleSendQueued = async () => {
-    if (approvedCount === 0) return;
-    sendTargetRef.current = sentTotal + approvedCount;
-    setSendState('loading');
-
-    // Call send-queued-emails edge function directly — bypasses Trigger.dev entirely
-    const { data, error } = await supabase.functions.invoke('send-queued-emails');
-    if (error || !data?.success) {
-      setSendState('error');
-      setTimeout(() => setSendState('idle'), 4000);
-      return;
-    }
-    if (data.sent > 0) {
-      setSendState('success');
-      setTimeout(() => setSendState('idle'), 4000);
-      return;
-    }
-
-    // No emails sent yet — poll DB for confirmation (handles async delays)
-    const start = Date.now();
-    const poll = setInterval(() => {
-      if (sentTotalRef.current >= sendTargetRef.current) {
-        setSendState('success');
-        clearInterval(poll);
-        setTimeout(() => setSendState('idle'), 4000);
-      } else if (Date.now() - start > 30000) {
-        setSendState('error');
-        clearInterval(poll);
-        setTimeout(() => setSendState('idle'), 4000);
-      }
-    }, 3000);
-  };
 
   return (
     <div className="h-full overflow-hidden" style={{ perspective: '1200px' }}>
@@ -197,13 +157,18 @@ export default function IndeedScreen({ showConfig }: { showConfig?: boolean }) {
                   </button>
                 )}
 
-                {(approvedCount > 0 || sendState !== 'idle') && (
+                {approvedCount > 0 && (
                   <RunBtn
-                    label={sendState === 'success' ? 'Sent ✓' : `Send Queued (${approvedCount})`}
-                    state={sendState}
-                    onClick={handleSendQueued}
+                    label={`Send Queued (${approvedCount})`}
+                    state={getState('indeed-send-orchestrator')}
+                    onClick={() => trigger('indeed-send-orchestrator')}
                   />
                 )}
+                <RunBtn
+                  label="Enrich"
+                  state={getState('indeed-enrich')}
+                  onClick={() => trigger('indeed-enrich')}
+                />
                 <RunBtn
                   label="Run Hijacker"
                   state={getState('indeed-full-run')}
@@ -217,9 +182,9 @@ export default function IndeedScreen({ showConfig }: { showConfig?: boolean }) {
                 style={{ width: `${Math.min((sentTotal / cap) * 100, 100)}%` }}
               />
             </div>
-            {(getError('indeed-send') || getError('indeed-full-run')) && (
+            {(getError('indeed-send-orchestrator') || getError('indeed-full-run') || getError('indeed-enrich')) && (
               <p className="mt-2 text-xs text-red-400/80">
-                Error: {getError('indeed-send') ?? getError('indeed-full-run')}
+                Error: {getError('indeed-send-orchestrator') ?? getError('indeed-full-run') ?? getError('indeed-enrich')}
               </p>
             )}
           </div>

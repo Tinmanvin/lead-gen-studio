@@ -44,21 +44,11 @@ export async function getOrCreateCampaign(source: CampaignSource): Promise<numbe
     return existing.id;
   }
 
-  const created = await sl<{ id: number }>("/campaigns/create", "POST", {
-    name,
-    client_id: null,
-    scheduler_cron_value: {
-      timezone: "UTC",
-      days_of_the_week: [1, 2, 3, 4, 5],
-      start_hour: "08:00",
-      end_hour: "17:00",
-      min_time_btw_emails: 60,
-      max_new_leads_per_day: 300,
-    },
-    stop_lead_settings: "REPLY_TO_AN_EMAIL",
-  });
+  const created = await sl<{ id: number }>("/campaigns/create", "POST", { name });
 
   const campaignId = created.id;
+
+  const emailStyle = "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:15px;line-height:1.6;color:#1a1a1a";
 
   await sl(`/campaigns/${campaignId}/sequences`, "POST", {
     sequences: [
@@ -67,8 +57,33 @@ export async function getOrCreateCampaign(source: CampaignSource): Promise<numbe
         seq_delay_details: { delay_in_days: 0 },
         seq_variants: [
           {
+            variant_label: "A",
             subject: "{{custom_subject}}",
-            email_body: "<p style=\"font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:15px;line-height:1.6;color:#1a1a1a\">{{custom_body}}</p>",
+            email_body: `<p style="${emailStyle}">{{custom_body}}</p>`,
+            id: 0,
+          },
+        ],
+      },
+      {
+        seq_number: 2,
+        seq_delay_details: { delay_in_days: 3 },
+        seq_variants: [
+          {
+            variant_label: "A",
+            subject: "Re: {{custom_subject}}",
+            email_body: `<p style="${emailStyle}">Just wanted to make sure this didn't get buried — did you get a chance to see my last note?</p><p style="${emailStyle}">Happy to show you a quick 10-minute demo if it's of any interest. No pitch, just the product.</p>`,
+            id: 0,
+          },
+        ],
+      },
+      {
+        seq_number: 3,
+        seq_delay_details: { delay_in_days: 7 },
+        seq_variants: [
+          {
+            variant_label: "A",
+            subject: "Re: {{custom_subject}}",
+            email_body: `<p style="${emailStyle}">Last one from me — if the timing's ever right, I'm one reply away.</p>`,
             id: 0,
           },
         ],
@@ -76,7 +91,7 @@ export async function getOrCreateCampaign(source: CampaignSource): Promise<numbe
     ],
   });
 
-  await sl(`/campaigns/${campaignId}/status`, "POST", { status: "ACTIVE" });
+  await sl(`/campaigns/${campaignId}/status`, "POST", { status: "START" });
 
   campaignCache.set(source, campaignId);
   return campaignId;
