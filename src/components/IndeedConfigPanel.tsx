@@ -81,7 +81,7 @@ function TemplatesTab() {
     reorder(arrayMove(templates, oldIndex, newIndex));
   }
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [drafts, setDrafts] = useState<Record<string, Partial<{ name: string; subject_template: string; body_prompt: string; price_au: string; price_uk: string }>>>({});
+  const [drafts, setDrafts] = useState<Record<string, Partial<{ category: string; name: string; subject_template: string; body_prompt: string; price_au: string; price_uk: string }>>>({});
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [newDraft, setNewDraft] = useState({ ...BLANK_NEW });
@@ -296,6 +296,20 @@ function TemplatesTab() {
                     value={draft.name ?? t.name}
                     onChange={(e) => setDrafts((prev) => ({ ...prev, [t.id]: { ...prev[t.id], name: e.target.value } }))}
                   />
+                </div>
+
+                {/* Job Type */}
+                <div>
+                  <label className="text-xs uppercase tracking-wider text-white/35 block mb-1.5">Job Type <span className="normal-case text-white/20 ml-1">— which job postings trigger this template</span></label>
+                  <select
+                    value={draft.category ?? t.category}
+                    onChange={(e) => setDrafts((prev) => ({ ...prev, [t.id]: { ...prev[t.id], category: e.target.value } }))}
+                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-input px-3 py-2 text-sm text-white/80 focus:outline-none focus:border-purple-primary/50"
+                  >
+                    {Object.entries(CATEGORY_LABELS).map(([k, v]) => (
+                      <option key={k} value={k} className="bg-[#0d0d1a]">{v}</option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Subject */}
