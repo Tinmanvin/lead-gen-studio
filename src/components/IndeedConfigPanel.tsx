@@ -30,7 +30,15 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
   );
 }
 
-const INDEED_TOKENS = ['{{iceBreaker}}', '{{firstName}}', '{{company}}', '{{job_title}}', '{{niche}}', '{{salary}}', '{{pricing_note}}'];
+const INDEED_TOKENS: { token: string; example: string }[] = [
+  { token: '{{iceBreaker}}',    example: 'Saw you\'ve been looking for a Receptionist for a few weeks — thought this might help.' },
+  { token: '{{firstName}}',     example: 'there  (always "there" — job listings rarely name the hiring manager)' },
+  { token: '{{company}}',       example: 'Smith Dental Practice' },
+  { token: '{{job_title}}',     example: 'Receptionist' },
+  { token: '{{niche}}',         example: 'dental  (inferred from company name + job title)' },
+  { token: '{{salary}}',        example: '£28k–£35k/yr  (normalised to annual; "a competitive salary" if not listed)' },
+  { token: '{{pricing_note}}',  example: '£495/mo  (from the AU/UK pricing fields above)' },
+];
 
 function TemplatesTab() {
   const { templates, loading, saving, removing, save, toggleActive, remove } = useIndeedTemplates();
@@ -121,13 +129,18 @@ function TemplatesTab() {
                     <span className="text-[10px] text-white/25">Click token to insert at cursor</span>
                   </div>
                   <div className="flex flex-wrap gap-1.5 mb-2">
-                    {INDEED_TOKENS.map((v) => (
-                      <button
-                        key={v}
-                        type="button"
-                        onClick={() => insertToken(t.id, t.body_prompt, v)}
-                        className="text-xs px-2 py-0.5 rounded-tag bg-purple-primary/10 text-purple-primary/80 cursor-pointer hover:bg-purple-primary/20 transition-colors font-mono"
-                      >{v}</button>
+                    {INDEED_TOKENS.map(({ token, example }) => (
+                      <div key={token} className="relative group/tok">
+                        <button
+                          type="button"
+                          onClick={() => insertToken(t.id, t.body_prompt, token)}
+                          className="text-xs px-2 py-0.5 rounded-tag bg-purple-primary/10 text-purple-primary/80 cursor-pointer hover:bg-purple-primary/20 transition-colors font-mono"
+                        >{token}</button>
+                        <div className="pointer-events-none absolute bottom-full left-0 mb-1.5 hidden group-hover/tok:block z-20 w-64 bg-[#1a1a2e] border border-white/[0.08] text-white/60 text-[10px] px-2.5 py-1.5 rounded-lg shadow-xl">
+                          <span className="text-white/30 uppercase tracking-wider text-[9px] block mb-0.5">e.g.</span>
+                          {example}
+                        </div>
+                      </div>
                     ))}
                   </div>
                   <textarea
