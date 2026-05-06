@@ -66,7 +66,26 @@ export function useIndeedTemplates() {
     return !error;
   }, []);
 
-  return { templates, loading, saving, removing, save, toggleActive, remove };
+  const create = useCallback(async (draft: {
+    category: string;
+    name: string;
+    subject_template: string;
+    body_prompt: string;
+    price_au: string;
+    price_uk: string;
+  }) => {
+    const { data, error } = await supabase
+      .from('indeed_templates')
+      .insert({ ...draft, active: true })
+      .select()
+      .single();
+    if (!error && data) {
+      setTemplates((prev) => [...prev, data as IndeedTemplate]);
+    }
+    return !error;
+  }, []);
+
+  return { templates, loading, saving, removing, save, toggleActive, remove, create };
 }
 
 // ── Settings ──────────────────────────────────────────────────────────────────

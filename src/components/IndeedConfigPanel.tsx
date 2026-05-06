@@ -40,12 +40,34 @@ const INDEED_TOKENS: { token: string; example: string }[] = [
   { token: '{{pricing_note}}',  example: '£495/mo  (from the AU/UK pricing fields above)' },
 ];
 
+const BLANK_NEW = { category: 'receptionist', name: '', subject_template: '', body_prompt: '', price_au: '', price_uk: '' };
+
 function TemplatesTab() {
-  const { templates, loading, saving, removing, save, toggleActive, remove } = useIndeedTemplates();
+  const { templates, loading, saving, removing, save, toggleActive, remove, create } = useIndeedTemplates();
   const [expanded, setExpanded] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, Partial<{ name: string; subject_template: string; body_prompt: string; price_au: string; price_uk: string }>>>({});
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [newDraft, setNewDraft] = useState({ ...BLANK_NEW });
+  const [newSaving, setNewSaving] = useState(false);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
+  const newBodyRef = useRef<HTMLTextAreaElement>(null);
+
+  function insertNewToken(token: string) {
+    const ta = newBodyRef.current;
+    if (!ta) {
+      setNewDraft((prev) => ({ ...prev, body_prompt: prev.body_prompt + token }));
+      return;
+    }
+    const s = ta.selectionStart;
+    const e = ta.selectionEnd;
+    const newBody = newDraft.body_prompt.slice(0, s) + token + newDraft.body_prompt.slice(e);
+    setNewDraft((prev) => ({ ...prev, body_prompt: newBody }));
+    setTimeout(() => {
+      ta.focus();
+      ta.setSelectionRange(s + token.length, s + token.length);
+    }, 0);
+  }
 
   function insertToken(id: string, currentBody: string, token: string) {
     const ta = bodyRef.current;
@@ -68,6 +90,130 @@ function TemplatesTab() {
 
   return (
     <div className="space-y-3">
+      {/* New Template */}
+      <div className="flex justify-end">
+        <button
+          onClick={() => { setCreating((v) => !v); setNewDraft({ ...BLANK_NEW }); }}
+          className="text-xs text-purple-primary hover:text-purple-primary/80 transition-colors font-medium"
+        >
+          {creating ? 'Cancel' : '+ New Template'}
+        </button>
+      </div>
+
+      {creating && (
+        <div className="liquid-glass rounded-card px-4 pb-5 pt-4 space-y-4">
+          <h4 className="text-sm font-semibold text-white/80">New Template</h4>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs uppercase tracking-wider text-white/35 block mb-1.5">Category</label>
+              <select
+                value={newDraft.category}
+                onChange={(e) => setNewDraft((prev) => ({ ...prev, category: e.target.value }))}
+                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-input px-3 py-2 text-sm text-white/80 focus:outline-none focus:border-purple-primary/50"
+              >
+                {Object.entries(CATEGORY_LABELS).map(([k, v]) => (
+                  <option key={k} value={k} className="bg-[#0d0d1a]">{v}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs uppercase tracking-wider text-white/35 block mb-1.5">Template Name</label>
+              <input
+                placeholder="e.g. SDR — Salary Hook"
+                value={newDraft.name}
+                onChange={(e) => setNewDraft((prev) => ({ ...prev, name: e.target.value }))}
+                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-input px-3 py-2 text-sm text-white/80 focus:outline-none focus:border-purple-primary/50"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs uppercase tracking-wider text-white/35 block mb-1.5">Subject Template</label>
+            <input
+              placeholder="e.g. I saw you're hiring a {{job_title}}?"
+              value={newDraft.subject_template}
+              onChange={(e) => setNewDraft((prev) => ({ ...prev, subject_template: e.target.value }))}
+              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-input px-3 py-2 text-sm text-white/80 focus:outline-none focus:border-purple-primary/50"
+            />
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs uppercase tracking-wider text-white/35">Email Template</label>
+              <span className="text-[10px] text-white/25">Click token to insert at cursor</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {INDEED_TOKENS.map(({ token, example }) => (
+                <div key={token} className="relative group/tok">
+                  <button
+                    type="button"
+                    onClick={() => insertNewToken(token)}
+                    className="text-xs px-2 py-0.5 rounded-tag bg-purple-primary/10 text-purple-primary/80 cursor-pointer hover:bg-purple-primary/20 transition-colors font-mono"
+                  >{token}</button>
+                  <div className="pointer-events-none absolute bottom-full left-0 mb-1.5 hidden group-hover/tok:block z-20 w-64 bg-[#1a1a2e] border border-white/[0.08] text-white/60 text-[10px] px-2.5 py-1.5 rounded-lg shadow-xl">
+                    <span className="text-white/30 uppercase tracking-wider text-[9px] block mb-0.5">e.g.</span>
+                    {example}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <textarea
+              ref={newBodyRef}
+              placeholder="Write your email body here. Use tokens above to insert dynamic values."
+              value={newDraft.body_prompt}
+              onChange={(e) => setNewDraft((prev) => ({ ...prev, body_prompt: e.target.value }))}
+              className="w-full h-44 bg-white/[0.03] border border-white/[0.08] rounded-input px-3 py-2 text-sm text-white/70 font-mono resize-none focus:outline-none focus:border-purple-primary/50 leading-relaxed"
+            />
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs uppercase tracking-wider text-white/35">Pricing</label>
+              <span className="text-[10px] text-white/25">Leave blank → no price mentioned</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-white/25 block mb-1.5">🇦🇺 AU</label>
+                <input
+                  placeholder="Optional"
+                  value={newDraft.price_au}
+                  onChange={(e) => setNewDraft((prev) => ({ ...prev, price_au: e.target.value }))}
+                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-input px-3 py-2 text-sm text-white/80 focus:outline-none focus:border-purple-primary/50"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-white/25 block mb-1.5">🇬🇧 UK</label>
+                <input
+                  placeholder="Optional"
+                  value={newDraft.price_uk}
+                  onChange={(e) => setNewDraft((prev) => ({ ...prev, price_uk: e.target.value }))}
+                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-input px-3 py-2 text-sm text-white/80 focus:outline-none focus:border-purple-primary/50"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              disabled={newSaving || !newDraft.name || !newDraft.subject_template || !newDraft.body_prompt}
+              onClick={async () => {
+                setNewSaving(true);
+                const ok = await create(newDraft);
+                setNewSaving(false);
+                if (ok) {
+                  setCreating(false);
+                  setNewDraft({ ...BLANK_NEW });
+                }
+              }}
+              className="px-5 py-2 rounded-button bg-purple-primary text-white text-sm font-semibold hover:bg-purple-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {newSaving ? 'Saving…' : 'Create Template'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {templates.map((t) => {
         const isOpen = expanded === t.id;
         const draft = drafts[t.id] ?? {};
