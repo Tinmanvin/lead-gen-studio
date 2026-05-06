@@ -220,11 +220,14 @@ function TemplatesTab() {
               disabled={newSaving || !newDraft.name || !newDraft.subject_template || !newDraft.body_prompt}
               onClick={async () => {
                 setNewSaving(true);
-                const ok = await create(newDraft);
-                setNewSaving(false);
-                if (ok) {
-                  setCreating(false);
-                  setNewDraft({ ...BLANK_NEW });
+                try {
+                  const ok = await create(newDraft);
+                  if (ok) {
+                    setCreating(false);
+                    setNewDraft({ ...BLANK_NEW });
+                  }
+                } finally {
+                  setNewSaving(false);
                 }
               }}
               className="px-5 py-2 rounded-button bg-purple-primary text-white text-sm font-semibold hover:bg-purple-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
