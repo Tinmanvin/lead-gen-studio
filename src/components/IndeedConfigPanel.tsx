@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useIndeedTemplates, useIndeedSettings, useEmailAccounts } from '@/hooks/useIndeedConfig';
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -30,10 +30,31 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
   );
 }
 
+const INDEED_TOKENS = ['{{iceBreaker}}', '{{company}}', '{{job_title}}', '{{pricing_note}}'];
+
 function TemplatesTab() {
-  const { templates, loading, saving, save, toggleActive } = useIndeedTemplates();
+  const { templates, loading, saving, removing, save, toggleActive, remove } = useIndeedTemplates();
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [drafts, setDrafts] = useState<Record<string, Partial<{ subject_template: string; body_prompt: string; price_au: string; price_uk: string }>>>({});
+  const [drafts, setDrafts] = useState<Record<string, Partial<{ name: string; subject_template: string; body_prompt: string; price_au: string; price_uk: string }>>>({});
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
+
+  function insertToken(id: string, currentBody: string, token: string) {
+    const ta = bodyRef.current;
+    const current = drafts[id]?.body_prompt ?? currentBody;
+    if (!ta) {
+      setDrafts((prev) => ({ ...prev, [id]: { ...prev[id], body_prompt: current + token } }));
+      return;
+    }
+    const s = ta.selectionStart;
+    const e = ta.selectionEnd;
+    const newBody = current.slice(0, s) + token + current.slice(e);
+    setDrafts((prev) => ({ ...prev, [id]: { ...prev[id], body_prompt: newBody } }));
+    setTimeout(() => {
+      ta.focus();
+      ta.setSelectionRange(s + token.length, s + token.length);
+    }, 0);
+  }
 
   if (loading) return <div className="py-12 text-center text-white/30 text-sm">Loading templates…</div>;
 
@@ -42,65 +63,107 @@ function TemplatesTab() {
       {templates.map((t) => {
         const isOpen = expanded === t.id;
         const draft = drafts[t.id] ?? {};
+        const isDeleting = deletingId === t.id;
+        const isRemoving = removing === t.id;
         return (
           <div key={t.id} className="liquid-glass rounded-card overflow-hidden">
             <div className="p-4 flex items-center justify-between">
               <div className="flex items-center gap-3 min-w-0">
                 <Toggle on={t.active} onChange={(v) => toggleActive(t.id, v)} />
                 <div className="min-w-0">
-                  <h4 className={`font-semibold text-sm ${t.active ? 'text-white' : 'text-white/40'}`}>{t.name}</h4>
-                  <p className="text-xs text-white/30 mt-0.5 truncate">{t.subject_template.replace('{{company}}', '[Company]').replace('{{job_title}}', '[Role]')}</p>
+                  <h4 className={`font-semibold text-sm ${t.active ? 'text-white' : 'text-white/40'}`}>{draft.name ?? t.name}</h4>
+                  <p className="text-xs text-white/30 mt-0.5 truncate">{(draft.subject_template ?? t.subject_template).replace('{{company}}', '[Company]').replace('{{job_title}}', '[Role]')}</p>
                 </div>
               </div>
-              <button
-                onClick={() => setExpanded(isOpen ? null : t.id)}
-                className="text-xs text-purple-primary hover:text-purple-primary/80 transition-colors ml-4 flex-shrink-0"
-              >
-                {isOpen ? 'Close' : 'Edit'}
-              </button>
+              <div className="flex items-center gap-3 ml-4 flex-shrink-0">
+                {isDeleting ? (
+                  <>
+                    <span className="text-xs text-white/40">Delete?</span>
+                    <button onClick={() => remove(t.id)} disabled={isRemoving} className="text-xs text-red-400 hover:text-red-300 transition-colors disabled:opacity-40">{isRemoving ? '…' : 'Yes'}</button>
+                    <button onClick={() => setDeletingId(null)} className="text-xs text-white/40 hover:text-white/60 transition-colors">No</button>
+                  </>
+                ) : (
+                  <>
+                    <button onClick={() => setDeletingId(t.id)} className="text-xs text-white/25 hover:text-red-400 transition-colors">Delete</button>
+                    <button onClick={() => setExpanded(isOpen ? null : t.id)} className="text-xs text-purple-primary hover:text-purple-primary/80 transition-colors">{isOpen ? 'Close' : 'Edit'}</button>
+                  </>
+                )}
+              </div>
             </div>
 
             {isOpen && (
               <div className="px-4 pb-5 pt-0 border-t border-white/[0.06] space-y-4">
-                {/* Subject */}
+                {/* Name */}
                 <div>
-                  <label className="text-xs uppercase tracking-wider text-white/35 block mb-1.5">Subject Line Template</label>
+                  <label className="text-xs uppercase tracking-wider text-white/35 block mb-1.5">Template Name</label>
                   <input
                     className="w-full bg-white/[0.03] border border-white/[0.08] rounded-input px-3 py-2 text-sm text-white/80 focus:outline-none focus:border-purple-primary/50"
-                    defaultValue={t.subject_template}
-                    onChange={(e) => setDrafts((prev) => ({ ...prev, [t.id]: { ...prev[t.id], subject_template: e.target.value } }))}
+                    value={draft.name ?? t.name}
+                    onChange={(e) => setDrafts((prev) => ({ ...prev, [t.id]: { ...prev[t.id], name: e.target.value } }))}
                   />
-                  <p className="text-xs text-white/25 mt-1">Variables: <code className="text-purple-primary/60">{'{{company}}'}</code> <code className="text-purple-primary/60">{'{{job_title}}'}</code></p>
                 </div>
 
-                {/* Body prompt */}
+                {/* Subject */}
                 <div>
-                  <label className="text-xs uppercase tracking-wider text-white/35 block mb-1.5">Email Prompt (sent to Claude)</label>
+                  <label className="text-xs uppercase tracking-wider text-white/35 block mb-1.5">Subject Template</label>
+                  <input
+                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-input px-3 py-2 text-sm text-white/80 focus:outline-none focus:border-purple-primary/50"
+                    value={draft.subject_template ?? t.subject_template}
+                    onChange={(e) => setDrafts((prev) => ({ ...prev, [t.id]: { ...prev[t.id], subject_template: e.target.value } }))}
+                  />
+                  <p className="text-xs text-white/25 mt-1">Tokens: <code className="text-purple-primary/60">{'{{company}}'}</code> <code className="text-purple-primary/60">{'{{job_title}}'}</code></p>
+                </div>
+
+                {/* Body */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs uppercase tracking-wider text-white/35">Email Template</label>
+                    <span className="text-[10px] text-white/25">Click token to insert at cursor</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {INDEED_TOKENS.map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() => insertToken(t.id, t.body_prompt, v)}
+                        className="text-xs px-2 py-0.5 rounded-tag bg-purple-primary/10 text-purple-primary/80 cursor-pointer hover:bg-purple-primary/20 transition-colors font-mono"
+                      >{v}</button>
+                    ))}
+                  </div>
                   <textarea
+                    ref={bodyRef}
                     className="w-full h-44 bg-white/[0.03] border border-white/[0.08] rounded-input px-3 py-2 text-sm text-white/70 font-mono resize-none focus:outline-none focus:border-purple-primary/50 leading-relaxed"
-                    defaultValue={t.body_prompt}
+                    value={draft.body_prompt ?? t.body_prompt}
                     onChange={(e) => setDrafts((prev) => ({ ...prev, [t.id]: { ...prev[t.id], body_prompt: e.target.value } }))}
                   />
-                  <p className="text-xs text-white/25 mt-1">Variables: <code className="text-purple-primary/60">{'{{job_title}}'}</code> <code className="text-purple-primary/60">{'{{pricing_note}}'}</code></p>
+                  <p className="text-[10px] text-white/25 mt-1"><code className="text-purple-primary/50">{'{{iceBreaker}}'}</code> is AI-generated per lead. All other tokens are substituted directly.</p>
                 </div>
 
                 {/* Pricing */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs uppercase tracking-wider text-white/35 block mb-1.5">🇦🇺 AU Pricing</label>
-                    <input
-                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-input px-3 py-2 text-sm text-white/80 focus:outline-none focus:border-purple-primary/50"
-                      defaultValue={t.price_au}
-                      onChange={(e) => setDrafts((prev) => ({ ...prev, [t.id]: { ...prev[t.id], price_au: e.target.value } }))}
-                    />
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs uppercase tracking-wider text-white/35">Pricing</label>
+                    <span className="text-[10px] text-white/25">Leave blank → no price mentioned</span>
                   </div>
-                  <div>
-                    <label className="text-xs uppercase tracking-wider text-white/35 block mb-1.5">🇬🇧 UK Pricing</label>
-                    <input
-                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-input px-3 py-2 text-sm text-white/80 focus:outline-none focus:border-purple-primary/50"
-                      defaultValue={t.price_uk}
-                      onChange={(e) => setDrafts((prev) => ({ ...prev, [t.id]: { ...prev[t.id], price_uk: e.target.value } }))}
-                    />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-white/25 block mb-1.5">🇦🇺 AU</label>
+                      <input
+                        className="w-full bg-white/[0.03] border border-white/[0.08] rounded-input px-3 py-2 text-sm text-white/80 focus:outline-none focus:border-purple-primary/50"
+                        value={draft.price_au ?? t.price_au}
+                        onChange={(e) => setDrafts((prev) => ({ ...prev, [t.id]: { ...prev[t.id], price_au: e.target.value } }))}
+                        placeholder="Optional"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-white/25 block mb-1.5">🇬🇧 UK</label>
+                      <input
+                        className="w-full bg-white/[0.03] border border-white/[0.08] rounded-input px-3 py-2 text-sm text-white/80 focus:outline-none focus:border-purple-primary/50"
+                        value={draft.price_uk ?? t.price_uk}
+                        onChange={(e) => setDrafts((prev) => ({ ...prev, [t.id]: { ...prev[t.id], price_uk: e.target.value } }))}
+                        placeholder="Optional"
+                      />
+                    </div>
                   </div>
                 </div>
 

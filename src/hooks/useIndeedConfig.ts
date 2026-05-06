@@ -18,7 +18,8 @@ export interface IndeedTemplate {
 export function useIndeedTemplates() {
   const [templates, setTemplates] = useState<IndeedTemplate[]>([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState<string | null>(null); // category being saved
+  const [saving, setSaving] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -55,7 +56,17 @@ export function useIndeedTemplates() {
     }
   }, []);
 
-  return { templates, loading, saving, save, toggleActive };
+  const remove = useCallback(async (id: string) => {
+    setRemoving(id);
+    const { error } = await supabase.from('indeed_templates').delete().eq('id', id);
+    setRemoving(null);
+    if (!error) {
+      setTemplates((prev) => prev.filter((t) => t.id !== id));
+    }
+    return !error;
+  }, []);
+
+  return { templates, loading, saving, removing, save, toggleActive, remove };
 }
 
 // ── Settings ──────────────────────────────────────────────────────────────────
