@@ -68,6 +68,7 @@ export function useIndeedTemplates() {
   }, []);
 
   const create = useCallback(async (draft: {
+    category: string;
     name: string;
     subject_template: string;
     body_prompt: string;
@@ -77,7 +78,7 @@ export function useIndeedTemplates() {
     const maxOrder = templates.reduce((m, t) => Math.max(m, t.sort_order ?? 0), 0);
     const { data, error } = await supabase
       .from('indeed_templates')
-      .insert({ ...draft, category: 'general', active: true, sort_order: maxOrder + 1 })
+      .insert({ ...draft, active: true, sort_order: maxOrder + 1 })
       .select()
       .single();
     if (!error && data) {
@@ -108,7 +109,7 @@ export interface IndeedSettingsData {
 }
 
 const DEFAULT_SETTINGS: IndeedSettingsData = {
-  categories_enabled: { receptionist: true, intake: true, chat: true, sdr: true, admin: true, after_hours: true, social: false },
+  categories_enabled: { receptionist: true, intake: true, chat: true, sdr: true, admin: true, after_hours: true, social: false, marketing: true },
   boards_enabled: { indeed_au: true, indeed_uk: true, seek: true, reed: true, totaljobs: true },
   daily_cap: 50,
   geo: { au: true, uk: true },

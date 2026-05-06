@@ -14,6 +14,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   admin: 'General Admin',
   after_hours: 'After Hours Cover',
   social: 'Social Media Manager',
+  marketing: 'Marketing / Lead Gen',
 };
 
 const BOARD_LABELS: Record<string, string> = {
@@ -45,7 +46,7 @@ const INDEED_TOKENS: { token: string; example: string }[] = [
   { token: '{{pricing_note}}',  example: '£495/mo  (from the AU/UK pricing fields above)' },
 ];
 
-const BLANK_NEW = { name: '', subject_template: '', body_prompt: '', price_au: '', price_uk: '' };
+const BLANK_NEW = { category: 'general', name: '', subject_template: '', body_prompt: '', price_au: '', price_uk: '' };
 
 function SortableTemplateCard({ t, children }: { t: IndeedTemplate; children: React.ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: t.id });
@@ -142,11 +143,24 @@ function TemplatesTab() {
           <div>
             <label className="text-xs uppercase tracking-wider text-white/35 block mb-1.5">Template Name</label>
             <input
-              placeholder="e.g. SDR — Salary Hook"
+              placeholder="e.g. Marketing — Lead Reactivation"
               value={newDraft.name}
               onChange={(e) => setNewDraft((prev) => ({ ...prev, name: e.target.value }))}
               className="w-full bg-white/[0.03] border border-white/[0.08] rounded-input px-3 py-2 text-sm text-white/80 focus:outline-none focus:border-purple-primary/50"
             />
+          </div>
+
+          <div>
+            <label className="text-xs uppercase tracking-wider text-white/35 block mb-1.5">Job Type <span className="normal-case text-white/20 ml-1">— which job postings trigger this template</span></label>
+            <select
+              value={newDraft.category}
+              onChange={(e) => setNewDraft((prev) => ({ ...prev, category: e.target.value }))}
+              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-input px-3 py-2 text-sm text-white/80 focus:outline-none focus:border-purple-primary/50"
+            >
+              {Object.entries(CATEGORY_LABELS).map(([k, v]) => (
+                <option key={k} value={k} className="bg-[#0d0d1a]">{v}</option>
+              ))}
+            </select>
           </div>
 
           <div>

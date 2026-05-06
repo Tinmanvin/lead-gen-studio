@@ -99,6 +99,22 @@ export const JOB_CATEGORIES: Record<
     template: "social",
     label: "Social / Content",
   },
+  marketing: {
+    searchTerms: [
+      "lead generation specialist",
+      "outbound lead generation",
+      "business development representative",
+      "marketing coordinator",
+      "demand generation specialist",
+      "outbound SDR",
+      "growth marketer",
+      "CRM coordinator",
+      "prospecting specialist",
+      "marketing manager",
+    ],
+    template: "marketing",
+    label: "Marketing / Lead Generation",
+  },
 };
 
 // Market configs
@@ -262,6 +278,11 @@ const RELEVANT_TITLE_TERMS = [
   "appointment setter", "lead qualifier", "telesales", "sales support",
   // Virtual / remote comms
   "virtual assistant", "virtual receptionist", "remote receptionist",
+  // Marketing / lead gen / outbound
+  "lead generation", "lead gen", "outbound sdr", "outbound sales",
+  "business development representative", "business development manager",
+  "demand generation", "growth market", "crm coordinator",
+  "marketing coordinator", "marketing manager", "prospecting",
 ];
 
 const IRRELEVANT_TITLE_TERMS = [
