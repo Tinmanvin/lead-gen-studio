@@ -67,7 +67,6 @@ export function useIndeedTemplates() {
   }, []);
 
   const create = useCallback(async (draft: {
-    category: string;
     name: string;
     subject_template: string;
     body_prompt: string;
