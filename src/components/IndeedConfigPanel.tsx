@@ -30,7 +30,7 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
   );
 }
 
-const INDEED_TOKENS = ['{{iceBreaker}}', '{{company}}', '{{job_title}}', '{{pricing_note}}'];
+const INDEED_TOKENS = ['{{iceBreaker}}', '{{firstName}}', '{{company}}', '{{job_title}}', '{{niche}}', '{{salary}}', '{{pricing_note}}'];
 
 function TemplatesTab() {
   const { templates, loading, saving, removing, save, toggleActive, remove } = useIndeedTemplates();

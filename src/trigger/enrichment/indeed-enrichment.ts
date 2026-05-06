@@ -387,7 +387,62 @@ Rules:
 }
 
 // ─────────────────────────────────────────────
-// Build final email from pre-written template + icebreaker
+// Salary normalisation — converts raw job board salary strings to annual
+// Adzuna/Reed store annual figures as "28000–35000"
+// Seek/Totaljobs store display text like "$4,000 per month" or "£28k–£32k per annum"
+// ─────────────────────────────────────────────
+
+function parseSalaryToAnnual(raw: string | null, country: string): string {
+  if (!raw || raw.trim() === "") return "a competitive salary";
+
+  const text = raw.toLowerCase();
+  const isMonthly = /per month|monthly|\/month|p\.m\b/.test(text);
+  const isWeekly = /per week|weekly|\/week|p\.w\b/.test(text);
+
+  const nums = (text.match(/\d[\d,]*/g) ?? [])
+    .map((s) => parseInt(s.replace(/,/g, ""), 10))
+    .filter((n) => !isNaN(n) && n > 100 && n < 1_000_000);
+
+  if (!nums.length) return "a competitive salary";
+
+  let min = nums[0];
+  let max: number | null = nums.length > 1 ? nums[1] : null;
+
+  if (isMonthly) { min *= 12; if (max !== null) max *= 12; }
+  else if (isWeekly) { min *= 52; if (max !== null) max *= 52; }
+
+  const sym = country === "UK" ? "£" : "$";
+  const fmt = (n: number) =>
+    n >= 1000 ? `${sym}${Math.round(n / 1000)}k` : `${sym}${n}`;
+
+  return max !== null && max !== min
+    ? `${fmt(min)}–${fmt(max)}/yr`
+    : `${fmt(min)}/yr`;
+}
+
+// ─────────────────────────────────────────────
+// Niche inference — keyword-based, no API call needed
+// ─────────────────────────────────────────────
+
+function inferNiche(companyName: string, jobTitle: string): string {
+  const t = `${companyName} ${jobTitle}`.toLowerCase();
+  if (/dental|dentist|orthodon/.test(t)) return "dental";
+  if (/medical|clinic|gp |health|hospital|physio|chiro|osteo|allied health/.test(t)) return "healthcare";
+  if (/law firm|legal|solicitor|conveyancing|barrister/.test(t)) return "legal";
+  if (/real estate|estate agent|letting agent|property management/.test(t)) return "real estate";
+  if (/plumb|electric|hvac|mechanical|builder|construc|roofing|tradies/.test(t)) return "trades";
+  if (/account|bookkeep|tax advisor|cpa\b/.test(t)) return "accounting";
+  if (/veterinar|vet clinic|animal hospital/.test(t)) return "veterinary";
+  if (/salon|beauty|spa|hair|nail/.test(t)) return "beauty";
+  if (/restaurant|cafe|hospitality|hotel|catering/.test(t)) return "hospitality";
+  if (/gym|fitness|personal train|pilates|yoga/.test(t)) return "fitness";
+  if (/auto|vehicle|car dealership|mechanic/.test(t)) return "automotive";
+  if (/insurance/.test(t)) return "insurance";
+  return "local business";
+}
+
+// ─────────────────────────────────────────────
+// Build final email from pre-written template + all tokens
 // ─────────────────────────────────────────────
 
 function buildEmail(
@@ -395,21 +450,23 @@ function buildEmail(
   icebreaker: string,
   companyName: string,
   jobTitle: string,
-  country: string
+  country: string,
+  salary: string,
+  niche: string
 ): { subject: string; body: string } {
   const pricingNote = country === "AU" ? template.price_au : template.price_uk;
 
-  const subject = template.subject_template
-    .replace(/\{\{company\}\}/g, companyName)
-    .replace(/\{\{job_title\}\}/g, jobTitle);
+  const replace = (str: string) =>
+    str
+      .replace(/\{\{iceBreaker\}\}/gi, icebreaker)
+      .replace(/\{\{firstName\}\}/gi, "there")
+      .replace(/\{\{company\}\}/gi, companyName)
+      .replace(/\{\{job_title\}\}/gi, jobTitle)
+      .replace(/\{\{niche\}\}/gi, niche)
+      .replace(/\{\{salary\}\}/gi, salary)
+      .replace(/\{\{pricing_note\}\}/gi, pricingNote);
 
-  const body = template.body_prompt
-    .replace(/\{\{icebreaker\}\}/g, icebreaker)
-    .replace(/\{\{company\}\}/g, companyName)
-    .replace(/\{\{job_title\}\}/g, jobTitle)
-    .replace(/\{\{pricing_note\}\}/g, pricingNote);
-
-  return { subject, body };
+  return { subject: replace(template.subject_template), body: replace(template.body_prompt) };
 }
 
 // ─────────────────────────────────────────────
@@ -499,7 +556,9 @@ export const indeedEnrichment = schemaTask({
       return { success: true, jobId, emailFound: true, status: "found" };
     }
 
-    const { subject, body } = buildEmail(template, icebreaker, job.company_name, job.job_title, job.country ?? "AU");
+    const salary = parseSalaryToAnnual(job.salary as string | null, job.country ?? "AU");
+    const niche = inferNiche(job.company_name, job.job_title);
+    const { subject, body } = buildEmail(template, icebreaker, job.company_name, job.job_title, job.country ?? "AU", salary, niche);
 
     await supabase.from("indeed_jobs").update({
       company_website: website,
