@@ -12,6 +12,7 @@ export interface IndeedTemplate {
   price_au: string;
   price_uk: string;
   active: boolean;
+  sort_order: number;
   updated_at: string;
 }
 
@@ -26,7 +27,7 @@ export function useIndeedTemplates() {
       const { data } = await supabase
         .from('indeed_templates')
         .select('*')
-        .order('created_at', { ascending: true });
+        .order('sort_order', { ascending: true });
       setTemplates(data ?? []);
       setLoading(false);
     }
@@ -73,18 +74,28 @@ export function useIndeedTemplates() {
     price_au: string;
     price_uk: string;
   }) => {
+    const maxOrder = templates.reduce((m, t) => Math.max(m, t.sort_order ?? 0), 0);
     const { data, error } = await supabase
       .from('indeed_templates')
-      .insert({ ...draft, category: 'general', active: true })
+      .insert({ ...draft, category: 'general', active: true, sort_order: maxOrder + 1 })
       .select()
       .single();
     if (!error && data) {
       setTemplates((prev) => [...prev, data as IndeedTemplate]);
     }
     return !error;
+  }, [templates]);
+
+  const reorder = useCallback(async (reordered: IndeedTemplate[]) => {
+    setTemplates(reordered);
+    await Promise.all(
+      reordered.map((t, i) =>
+        supabase.from('indeed_templates').update({ sort_order: i + 1 }).eq('id', t.id)
+      )
+    );
   }, []);
 
-  return { templates, loading, saving, removing, save, toggleActive, remove, create };
+  return { templates, loading, saving, removing, save, toggleActive, remove, create, reorder };
 }
 
 // ── Settings ──────────────────────────────────────────────────────────────────

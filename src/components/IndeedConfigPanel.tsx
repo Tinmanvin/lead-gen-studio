@@ -1,5 +1,10 @@
 import { useState, useRef } from 'react';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { GripVertical } from 'lucide-react';
 import { useIndeedTemplates, useIndeedSettings, useEmailAccounts } from '@/hooks/useIndeedConfig';
+import type { IndeedTemplate } from '@/hooks/useIndeedConfig';
 
 const CATEGORY_LABELS: Record<string, string> = {
   receptionist: 'AI Receptionist',
@@ -42,8 +47,38 @@ const INDEED_TOKENS: { token: string; example: string }[] = [
 
 const BLANK_NEW = { name: '', subject_template: '', body_prompt: '', price_au: '', price_uk: '' };
 
+function SortableTemplateCard({ t, children }: { t: IndeedTemplate; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: t.id });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }}
+    >
+      <div className="liquid-glass rounded-card overflow-hidden flex">
+        <div
+          {...attributes}
+          {...listeners}
+          className="flex items-center px-2 cursor-grab active:cursor-grabbing text-white/20 hover:text-white/50 transition-colors flex-shrink-0 touch-none"
+        >
+          <GripVertical size={16} />
+        </div>
+        <div className="flex-1 min-w-0">{children}</div>
+      </div>
+    </div>
+  );
+}
+
 function TemplatesTab() {
-  const { templates, loading, saving, removing, save, toggleActive, remove, create } = useIndeedTemplates();
+  const { templates, loading, saving, removing, save, toggleActive, remove, create, reorder } = useIndeedTemplates();
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = templates.findIndex((t) => t.id === active.id);
+    const newIndex = templates.findIndex((t) => t.id === over.id);
+    reorder(arrayMove(templates, oldIndex, newIndex));
+  }
   const [expanded, setExpanded] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, Partial<{ name: string; subject_template: string; body_prompt: string; price_au: string; price_uk: string }>>>({});
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -200,13 +235,16 @@ function TemplatesTab() {
         </div>
       )}
 
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={templates.map((t) => t.id)} strategy={verticalListSortingStrategy}>
       {templates.map((t) => {
         const isOpen = expanded === t.id;
         const draft = drafts[t.id] ?? {};
         const isDeleting = deletingId === t.id;
         const isRemoving = removing === t.id;
         return (
-          <div key={t.id} className="liquid-glass rounded-card overflow-hidden">
+          <SortableTemplateCard key={t.id} t={t}>
+            <div>
             <div className="p-4 flex items-center justify-between">
               <div className="flex items-center gap-3 min-w-0">
                 <Toggle on={t.active} onChange={(v) => toggleActive(t.id, v)} />
@@ -331,9 +369,12 @@ function TemplatesTab() {
                 </div>
               </div>
             )}
-          </div>
+            </div>
+          </SortableTemplateCard>
         );
       })}
+        </SortableContext>
+      </DndContext>
     </div>
   );
 }
