@@ -26,7 +26,7 @@ export function useIndeedTemplates() {
       const { data } = await supabase
         .from('indeed_templates')
         .select('*')
-        .order('category');
+        .order('created_at', { ascending: true });
       setTemplates(data ?? []);
       setLoading(false);
     }
@@ -75,7 +75,7 @@ export function useIndeedTemplates() {
   }) => {
     const { data, error } = await supabase
       .from('indeed_templates')
-      .insert({ ...draft, active: true })
+      .insert({ ...draft, category: 'general', active: true })
       .select()
       .single();
     if (!error && data) {
