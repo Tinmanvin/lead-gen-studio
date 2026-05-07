@@ -10,19 +10,33 @@ import { task, batch, logger } from "@trigger.dev/sdk/v3";
 import { indeedSend } from "./indeed-send.js";
 import { supabase } from "../../lib/supabase-server.js";
 
-// 6,000/month across 30 days = 200/day
-const DAILY_CAP = 200;
+const DAILY_CAP = 250;
 
 export const indeedSendOrchestrator = task({
   id: "indeed-send-orchestrator",
   machine: "small-1x",
   maxDuration: 300,
   run: async () => {
+    // How many have already been sent today
+    const todayISO = new Date();
+    todayISO.setHours(0, 0, 0, 0);
+    const { count: sentToday } = await supabase
+      .from("indeed_jobs")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", todayISO.toISOString())
+      .in("status", ["sent", "opened", "replied"]);
+
+    const remaining = Math.max(0, DAILY_CAP - (sentToday ?? 0));
+    if (remaining === 0) {
+      logger.log("Daily cap already reached", { sentToday, DAILY_CAP });
+      return { success: true, queued: 0 };
+    }
+
     const { data: jobs, error } = await supabase
       .from("indeed_jobs")
       .select("id")
       .eq("status", "approved")
-      .limit(DAILY_CAP);
+      .limit(remaining);
 
     if (error || !jobs?.length) {
       logger.log("No approved jobs to queue", { error: error?.message });
