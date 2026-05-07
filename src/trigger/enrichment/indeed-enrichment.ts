@@ -359,17 +359,24 @@ async function generateIcebreaker(
   if (daysSincePosted) context += `\nDays since posted: ${daysSincePosted}`;
   if (isRepost) context += `\nTimes reposted: ${repostCount}`;
 
+  const repostInstruction = isRepost
+    ? `IMPORTANT: This role has been reposted ${repostCount} times. Your opening MUST call this out directly and conversationally — e.g. "Seen you've been trying to find a ${jobTitle} for a while now." or "Looks like finding the right ${jobTitle} has been trickier than expected." Be direct about the repeated posting without being rude.`
+    : `Reference the specific role or hiring situation naturally.`;
+
   const prompt = `Write 1-2 sentences as the opening line of a cold email. Do not include a greeting.
 
 Context:
 ${context}
 
+Task:
+${repostInstruction}
+
 Rules:
-- Reference the specific role or hiring situation
-- If reposted multiple times, acknowledge the difficulty finding the right hire
-- If posted recently (1-3 days), acknowledge the fresh search
+- If posted recently (1-3 days) and NOT a repost, acknowledge the fresh search
 - Direct and natural — sound like a human, not a marketer
-- No em dashes, no "I noticed", no "I came across"
+- No hyphens, no dashes, no em dashes, no en dashes
+- No "I noticed", no "I came across", no "thought this might be well timed", no filler endings
+- End with a complete thought — do not trail off with a vague phrase
 - Output only the 1-2 sentences, nothing else`;
 
   try {
@@ -379,10 +386,11 @@ Rules:
       messages: [{ role: "user", content: prompt }],
     });
 
-    const text = response.content[0].type === "text" ? response.content[0].text.trim() : "";
-    return text || `Saw ${companyName} is looking for a ${jobTitle} — thought this might be well timed.`;
+    const raw = response.content[0].type === "text" ? response.content[0].text.trim() : "";
+    const text = raw.replace(/[-–—]/g, "");
+    return text || `Saw ${companyName} is looking for a ${jobTitle}.`;
   } catch {
-    return `Saw ${companyName} is looking for a ${jobTitle} — thought this might be well timed.`;
+    return `Saw ${companyName} is looking for a ${jobTitle}.`;
   }
 }
 

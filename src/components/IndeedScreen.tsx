@@ -125,19 +125,19 @@ export default function IndeedScreen({ showConfig }: { showConfig?: boolean }) {
 
                 {/* Queue All / Unqueue All toggle */}
                 {(readyCount > 0 || approvedCount > 0) && (
-                  readyCount > 0 ? (
-                    <button
-                      onClick={queueAll}
-                      className="px-3 py-1.5 rounded-button text-xs font-semibold bg-purple-primary/20 text-purple-primary hover:bg-purple-primary/30 transition-all duration-200 border border-purple-primary/30"
-                    >
-                      Queue All ({Math.min(readyCount, cap)})
-                    </button>
-                  ) : (
+                  approvedCount > 0 ? (
                     <button
                       onClick={dequeueAll}
                       className="px-3 py-1.5 rounded-button text-xs font-semibold bg-green-500/20 text-green-400 hover:bg-red-500/20 hover:text-red-400 transition-all duration-200 border border-green-500/20 hover:border-red-500/20"
                     >
                       Unqueue All ({approvedCount})
+                    </button>
+                  ) : (
+                    <button
+                      onClick={queueAll}
+                      className="px-3 py-1.5 rounded-button text-xs font-semibold bg-purple-primary/20 text-purple-primary hover:bg-purple-primary/30 transition-all duration-200 border border-purple-primary/30"
+                    >
+                      Queue All ({Math.min(readyCount, cap)})
                     </button>
                   )
                 )}

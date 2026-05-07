@@ -209,6 +209,8 @@ export function useIndeedJobs(limit = 50, dailyCap = 50) {
       .select('id')
       .gte('created_at', today.toISOString())
       .eq('status', 'queued')
+      .order('repost_count', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(dailyCap);
 
     if (fetchErr || !allReady?.length) return;
