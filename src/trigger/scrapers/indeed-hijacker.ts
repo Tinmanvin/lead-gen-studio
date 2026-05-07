@@ -30,7 +30,7 @@ export const JOB_CATEGORIES: Record<
     template: "receptionist",
     label: "AI Receptionist / Voice Agent",
   },
-  intake_coordinator: {
+  intake: {
     searchTerms: [
       "patient coordinator",
       "intake coordinator",
@@ -44,7 +44,7 @@ export const JOB_CATEGORIES: Record<
     template: "intake",
     label: "Patient / Intake Coordinator",
   },
-  live_chat: {
+  chat: {
     searchTerms: [
       "live chat agent",
       "chat support",
@@ -178,14 +178,14 @@ function parseHoursSincePosted(text: string | null): number | null {
   return null;
 }
 
-function detectCategory(jobTitle: string): string {
+function detectCategory(jobTitle: string): string | null {
   const title = jobTitle.toLowerCase();
   for (const [cat, config] of Object.entries(JOB_CATEGORIES)) {
     if (config.searchTerms.some((term) => title.includes(term.toLowerCase()))) {
       return cat;
     }
   }
-  return "receptionist"; // fallback
+  return null;
 }
 
 async function checkAndSaveJob(
