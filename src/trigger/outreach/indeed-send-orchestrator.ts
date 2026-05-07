@@ -6,7 +6,7 @@
  *
  * Runs on-demand (triggered from UI "Run Hijacker") or scheduled (9am UTC daily).
  */
-import { task, batch, logger } from "@trigger.dev/sdk/v3";
+import { task, batch, logger, wait } from "@trigger.dev/sdk/v3";
 import { indeedSend } from "./indeed-send.js";
 import { supabase } from "../../lib/supabase-server.js";
 import { getOrCreateCampaign } from "../../lib/smartlead.js";
@@ -56,6 +56,7 @@ export const indeedSendOrchestrator = task({
     const chunkSize = 20;
     for (let i = 0; i < sendJobs.length; i += chunkSize) {
       await batch.trigger(sendJobs.slice(i, i + chunkSize));
+      if (i + chunkSize < sendJobs.length) await wait.for({ seconds: 8 });
     }
 
     return { success: true, queued: jobs.length };
