@@ -96,7 +96,7 @@ export default function IndeedScreen({ showConfig }: { showConfig?: boolean }) {
 
   const sentTotal = stats.sent;
   const cap = stats.cap;
-  const readyCount = jobs.filter((j) => j.status === 'queued').length;
+  const readyCount = stats.ready;
   const approvedCount = stats.approved;
 
   return (
@@ -120,7 +120,7 @@ export default function IndeedScreen({ showConfig }: { showConfig?: boolean }) {
               </span>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-white/35">
-                  {loading ? '' : `${stats.processing} processing · ${stats.ready} ready${approvedCount > 0 ? ` · ${approvedCount} queued` : ''}`}
+                  {loading ? '' : `${stats.processing} processing · ${stats.enriched} enriched · ${stats.ready} ready · ${approvedCount} queued`}
                 </span>
 
                 {/* Queue All / Unqueue All toggle */}

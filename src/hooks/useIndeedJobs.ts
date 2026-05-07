@@ -26,6 +26,7 @@ export interface IndeedJob {
 
 export interface IndeedStats {
   processing: number; // status='found' — being enriched right now
+  enriched: number;   // email_found=true today — true enrichment hit rate
   ready: number;      // status='queued' — enriched, ready to review
   approved: number;   // status='approved' — user queued for sending
   sent: number;
@@ -34,7 +35,7 @@ export interface IndeedStats {
 
 export function useIndeedJobs(limit = 50, dailyCap = 50) {
   const [jobs, setJobs] = useState<IndeedJob[]>([]);
-  const [stats, setStats] = useState<IndeedStats>({ processing: 0, ready: 0, approved: 0, sent: 0, cap: dailyCap });
+  const [stats, setStats] = useState<IndeedStats>({ processing: 0, enriched: 0, ready: 0, approved: 0, sent: 0, cap: dailyCap });
   const [loading, setLoading] = useState(true);
 
   const todayStart = () => {
@@ -50,7 +51,7 @@ export function useIndeedJobs(limit = 50, dailyCap = 50) {
     async function fetchInitial() {
       setLoading(true);
       try {
-        const [visibleRes, processingRes, approvedRes, sentRes] = await Promise.all([
+        const [visibleRes, processingRes, enrichedRes, readyRes, approvedRes, sentRes] = await Promise.all([
           // Show both queued (ready to review) and approved (user queued for send)
           supabase
             .from('indeed_jobs')
@@ -66,6 +67,18 @@ export function useIndeedJobs(limit = 50, dailyCap = 50) {
             .select('id', { count: 'exact', head: true })
             .gte('created_at', todayISO)
             .eq('status', 'found'),
+          // True enrichment hit rate — all jobs with email found today regardless of status
+          supabase
+            .from('indeed_jobs')
+            .select('id', { count: 'exact', head: true })
+            .gte('created_at', todayISO)
+            .eq('email_found', true),
+          // True count of enriched+ready — separate from visible list so the cap doesn't hide it
+          supabase
+            .from('indeed_jobs')
+            .select('id', { count: 'exact', head: true })
+            .gte('created_at', todayISO)
+            .eq('status', 'queued'),
           // Count approved
           supabase
             .from('indeed_jobs')
@@ -84,7 +97,8 @@ export function useIndeedJobs(limit = 50, dailyCap = 50) {
         setJobs(visible);
         setStats({
           processing: processingRes.count ?? 0,
-          ready: visible.filter((j) => j.status === 'queued').length,
+          enriched: enrichedRes.count ?? 0,
+          ready: readyRes.count ?? 0,
           approved: approvedRes.count ?? 0,
           sent: sentRes.count ?? 0,
           cap: dailyCap,
@@ -129,6 +143,7 @@ export function useIndeedJobs(limit = 50, dailyCap = 50) {
 
             if (oldStatus === 'found' && newStatus === 'queued') {
               delta.processing = Math.max(0, prev.processing - 1);
+              delta.enriched = prev.enriched + 1;
               delta.ready = prev.ready + 1;
             } else if (oldStatus === 'queued' && newStatus === 'approved') {
               delta.ready = Math.max(0, prev.ready - 1);
@@ -184,18 +199,28 @@ export function useIndeedJobs(limit = 50, dailyCap = 50) {
     }
   }, []);
 
-  // Queue ALL visible ready jobs at once
+  // Queue ALL ready jobs — queries DB directly so the visible-list cap doesn't limit it
   const queueAll = useCallback(async () => {
-    const readyIds = jobs.filter((j) => j.status === 'queued').map((j) => j.id);
-    if (readyIds.length === 0) return;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
+    const { data: allReady, error: fetchErr } = await supabase
+      .from('indeed_jobs')
+      .select('id')
+      .gte('created_at', today.toISOString())
+      .eq('status', 'queued');
+
+    if (fetchErr || !allReady?.length) return;
+
+    const readyIds = allReady.map((j) => j.id);
     const readyCount = readyIds.length;
+
     setJobs((prev) =>
       prev.map((j) => (readyIds.includes(j.id) ? { ...j, status: 'approved' } : j))
     );
     setStats((prev) => ({
       ...prev,
-      ready: Math.max(0, prev.ready - readyCount),
+      ready: 0,
       approved: prev.approved + readyCount,
     }));
 
@@ -210,11 +235,11 @@ export function useIndeedJobs(limit = 50, dailyCap = 50) {
       );
       setStats((prev) => ({
         ...prev,
-        ready: prev.ready + readyCount,
+        ready: readyCount,
         approved: Math.max(0, prev.approved - readyCount),
       }));
     }
-  }, [jobs]);
+  }, []);
 
   // Dequeue ALL approved jobs at once
   const dequeueAll = useCallback(async () => {
@@ -255,7 +280,7 @@ export function useIndeedJobs(limit = 50, dailyCap = 50) {
       .delete()
       .gte('created_at', today.toISOString());
     setJobs([]);
-    setStats({ processing: 0, ready: 0, approved: 0, sent: 0, cap: dailyCap });
+    setStats({ processing: 0, enriched: 0, ready: 0, approved: 0, sent: 0, cap: dailyCap });
   }
 
   return { jobs, stats, loading, clearToday, queueJob, dequeueJob, queueAll, dequeueAll };
