@@ -12,11 +12,11 @@ import { getOrCreateCampaign, addLeadToSmartlead } from "../../lib/smartlead.js"
 
 export const indeedSend = schemaTask({
   id: "indeed-send",
-  schema: z.object({ jobId: z.string() }),
+  schema: z.object({ jobId: z.string(), campaignId: z.number().optional() }),
   machine: "micro",
   maxDuration: 30,
   run: async (payload) => {
-    const { jobId } = payload;
+    const { jobId, campaignId: passedCampaignId } = payload;
 
     const { data: job, error: jobErr } = await supabase
       .from("indeed_jobs")
@@ -39,7 +39,7 @@ export const indeedSend = schemaTask({
       return { success: false, reason: "missing_email_fields" };
     }
 
-    const campaignId = await getOrCreateCampaign("indeed");
+    const campaignId = passedCampaignId ?? await getOrCreateCampaign("indeed");
 
     const result = await addLeadToSmartlead(campaignId, {
       email: job.dm_email,

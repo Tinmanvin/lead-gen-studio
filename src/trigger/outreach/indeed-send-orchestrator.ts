@@ -9,6 +9,7 @@
 import { task, batch, logger } from "@trigger.dev/sdk/v3";
 import { indeedSend } from "./indeed-send.js";
 import { supabase } from "../../lib/supabase-server.js";
+import { getOrCreateCampaign } from "../../lib/smartlead.js";
 
 const DAILY_CAP = 250;
 
@@ -43,11 +44,13 @@ export const indeedSendOrchestrator = task({
       return { success: true, queued: 0 };
     }
 
-    logger.log(`Queuing ${jobs.length} jobs in Smartlead`);
+    // Fetch campaign ID once — passing it to child tasks avoids 150 parallel GET /campaigns calls
+    const campaignId = await getOrCreateCampaign("indeed");
+    logger.log(`Queuing ${jobs.length} jobs in Smartlead`, { campaignId });
 
     const sendJobs = jobs.map((job) => ({
       id: indeedSend.id,
-      payload: { jobId: job.id },
+      payload: { jobId: job.id, campaignId },
     }));
 
     const chunkSize = 20;
