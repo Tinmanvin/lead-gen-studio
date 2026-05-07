@@ -300,6 +300,13 @@ const IRRELEVANT_TITLE_TERMS = [
   // Management / executive
   "chief ", "ceo", "cto", "coo", "vp ", "vice president", "director",
   "head of ", "general manager",
+  // Project management — different market, AI doesn't replace project admins
+  "project admin", "project coordinator", "project manager", "project management",
+  "project support", "project officer",
+  // HR / compliance / workforce — not our pain point
+  "compliance admin", "compliance coordinator", "compliance manager",
+  "workforce", "hr admin", "hr coordinator", "human resources",
+  "payroll", "recruitment coordinator", "talent coordinator",
   // Skilled trades (not our market)
   "electrician", "plumber", "carpenter", "welder", "mechanic",
   // Other unrelated
