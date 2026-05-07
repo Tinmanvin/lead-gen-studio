@@ -90,7 +90,7 @@ function RunBtn({
 export default function IndeedScreen({ showConfig }: { showConfig?: boolean }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const { settings } = useIndeedSettings();
-  const { jobs, stats, loading, clearToday, queueJob, dequeueJob, queueAll, dequeueAll } = useIndeedJobs(200, settings.daily_cap);
+  const { jobs, stats, loading, clearToday, queueJob, dequeueJob, queueAll, dequeueAll } = useIndeedJobs(250, settings.daily_cap);
   const { trigger, getState, getError } = useTriggerRun();
   const [clearing, setClearing] = useState(false);
 
