@@ -199,7 +199,7 @@ export function useIndeedJobs(limit = 50, dailyCap = 50) {
     }
   }, []);
 
-  // Queue ALL ready jobs — queries DB directly so the visible-list cap doesn't limit it
+  // Queue ALL ready jobs — capped at dailyCap, queries DB directly
   const queueAll = useCallback(async () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -208,7 +208,8 @@ export function useIndeedJobs(limit = 50, dailyCap = 50) {
       .from('indeed_jobs')
       .select('id')
       .gte('created_at', today.toISOString())
-      .eq('status', 'queued');
+      .eq('status', 'queued')
+      .limit(dailyCap);
 
     if (fetchErr || !allReady?.length) return;
 
@@ -220,7 +221,7 @@ export function useIndeedJobs(limit = 50, dailyCap = 50) {
     );
     setStats((prev) => ({
       ...prev,
-      ready: 0,
+      ready: Math.max(0, prev.ready - readyCount),
       approved: prev.approved + readyCount,
     }));
 
@@ -235,11 +236,11 @@ export function useIndeedJobs(limit = 50, dailyCap = 50) {
       );
       setStats((prev) => ({
         ...prev,
-        ready: readyCount,
+        ready: prev.ready + readyCount,
         approved: Math.max(0, prev.approved - readyCount),
       }));
     }
-  }, []);
+  }, [dailyCap]);
 
   // Dequeue ALL approved jobs at once
   const dequeueAll = useCallback(async () => {

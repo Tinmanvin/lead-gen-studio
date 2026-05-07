@@ -130,7 +130,7 @@ export default function IndeedScreen({ showConfig }: { showConfig?: boolean }) {
                       onClick={queueAll}
                       className="px-3 py-1.5 rounded-button text-xs font-semibold bg-purple-primary/20 text-purple-primary hover:bg-purple-primary/30 transition-all duration-200 border border-purple-primary/30"
                     >
-                      Queue All ({readyCount})
+                      Queue All ({Math.min(readyCount, cap)})
                     </button>
                   ) : (
                     <button
