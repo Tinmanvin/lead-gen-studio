@@ -18,11 +18,11 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const BOARD_LABELS: Record<string, string> = {
-  indeed_au: 'Indeed AU',
-  indeed_uk: 'Indeed UK',
+  indeed_au: 'Adzuna AU',
+  indeed_uk: 'Adzuna UK',
   seek: 'Seek',
   reed: 'Reed',
-  totaljobs: 'Totaljobs',
+  cv_library: 'CV-Library',
 };
 
 function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {

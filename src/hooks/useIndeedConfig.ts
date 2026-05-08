@@ -110,7 +110,7 @@ export interface IndeedSettingsData {
 
 const DEFAULT_SETTINGS: IndeedSettingsData = {
   categories_enabled: { receptionist: true, intake: true, chat: true, sdr: true, admin: true, after_hours: true, social: false, marketing: true },
-  boards_enabled: { indeed_au: true, indeed_uk: true, seek: true, reed: true, totaljobs: true },
+  boards_enabled: { indeed_au: true, indeed_uk: true, seek: true, reed: true, cv_library: true },
   daily_cap: 50,
   geo: { au: true, uk: true },
 };

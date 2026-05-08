@@ -61,46 +61,71 @@ export const indeedHijackerScrapeOrchestrator = schedules.task({
       return { success: false };
     }
 
+    // Read live settings from DB — geo, board toggles, category toggles
+    const { data: settingsRows } = await supabase.from("indeed_settings").select("key, value");
+    const sm: Record<string, any> = {};
+    (settingsRows ?? []).forEach((r: any) => { sm[r.key] = r.value; });
+
+    const geo = sm.geo ?? { au: true, uk: true };
+    const boards = sm.boards_enabled ?? { indeed_au: true, indeed_uk: true, seek: true, reed: true, cv_library: true };
+    const cats = sm.categories_enabled ?? {};
+
+    const enabled = (k: string) => boards[k] !== false;
+
     const allJobs: Array<{ id: string; payload: Record<string, unknown> }> = [];
 
     for (const [categoryKey, categoryConfig] of Object.entries(JOB_CATEGORIES)) {
       if (categoryKey === "social") continue;
+      if (cats[categoryKey] === false) continue;
 
       const terms = categoryConfig.searchTerms.slice(0, 3);
 
       for (const searchTerm of terms) {
         // ── AU boards — per city ──────────────────────────────────────
-        for (const city of AU_CITIES_INDEED) {
-          allJobs.push({
-            id: indeedHijackerScrape.id,
-            payload: { board: "adzuna_au", searchTerm, category: categoryKey, location: city, userId },
-          });
+        if (geo.au) {
+          if (enabled("indeed_au")) {
+            for (const city of AU_CITIES_INDEED) {
+              allJobs.push({
+                id: indeedHijackerScrape.id,
+                payload: { board: "adzuna_au", searchTerm, category: categoryKey, location: city, userId },
+              });
+            }
+          }
+          if (enabled("seek")) {
+            for (const city of AU_CITIES_SEEK) {
+              allJobs.push({
+                id: indeedHijackerScrape.id,
+                payload: { board: "seek", searchTerm, category: categoryKey, location: city, userId },
+              });
+            }
+          }
         }
 
-        for (const city of AU_CITIES_SEEK) {
-          allJobs.push({
-            id: indeedHijackerScrape.id,
-            payload: { board: "seek", searchTerm, category: categoryKey, location: city, userId },
-          });
+        // ── UK boards — nationwide ────────────────────────────────────
+        if (geo.uk) {
+          if (enabled("indeed_uk")) {
+            allJobs.push({
+              id: indeedHijackerScrape.id,
+              payload: { board: "adzuna_uk", searchTerm, category: categoryKey, location: "", userId },
+            });
+          }
+          if (enabled("reed")) {
+            allJobs.push({
+              id: indeedHijackerScrape.id,
+              payload: { board: "reed_api", searchTerm, category: categoryKey, location: "", userId },
+            });
+          }
+          if (enabled("cv_library")) {
+            allJobs.push({
+              id: indeedHijackerScrape.id,
+              payload: { board: "cv_library", searchTerm, category: categoryKey, location: "", userId },
+            });
+          }
         }
-
-        // ── UK boards — nationwide (empty location = no city restriction) ──
-        allJobs.push({
-          id: indeedHijackerScrape.id,
-          payload: { board: "adzuna_uk", searchTerm, category: categoryKey, location: "", userId },
-        });
-
-        allJobs.push({
-          id: indeedHijackerScrape.id,
-          payload: { board: "reed_api", searchTerm, category: categoryKey, location: "", userId },
-        });
-
-        allJobs.push({
-          id: indeedHijackerScrape.id,
-          payload: { board: "cv_library", searchTerm, category: categoryKey, location: "", userId },
-        });
       }
     }
+
+    logger.log("Settings applied", { geo, auBoards: [enabled("indeed_au") && "adzuna_au", enabled("seek") && "seek"].filter(Boolean), ukBoards: [enabled("indeed_uk") && "adzuna_uk", enabled("reed") && "reed_api", enabled("cv_library") && "cv_library"].filter(Boolean) });
 
     logger.log(`Firing ${allJobs.length} scrape tasks`);
     await fireBatch(allJobs, "Indeed Hijacker Scrape");
