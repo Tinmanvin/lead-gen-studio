@@ -13,7 +13,7 @@
 import { schemaTask, logger } from "@trigger.dev/sdk/v3";
 import { z } from "zod";
 import { supabase } from "../../lib/supabase-server.js";
-import { verifyEmail, verifyFirstOf } from "./email-verification.js";
+import { verifyEmail } from "./email-verification.js";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -498,23 +498,7 @@ export const emailEnrichment = schemaTask({
       if (liResult.title && !updates.dm_title) updates.dm_title = liResult.title;
     }
 
-    // ── Source 4: Email pattern generation (verified waterfall) ────────────
-    if (!updates.dm_email) {
-      logger.log(`[4/5] Pattern waterfall for ${ownerName ?? "unknown"} @ ${domain}`);
-      const patterns = generateEmailPatterns(ownerName, domain);
-      const hit = await verifyFirstOf(patterns, "pattern");
-      if (hit) {
-        updates.dm_email = hit.email;
-        foundVia = ownerName ? "pattern_personal" : "pattern_generic";
-        emailMethod = "pattern";
-        emailStatus = hit.result.status;
-        logger.log(`Pattern verified: ${hit.email} (${hit.result.status})`);
-      } else {
-        logger.log(`Pattern waterfall: no verified email found for ${domain}`);
-      }
-    }
-
-    // ── Source 5: Facebook page scrape ─────────────────────────────────────
+    // ── Source 4: Facebook page scrape ─────────────────────────────────────
     const fbUrl = updates.dm_facebook_url ?? lead.dm_facebook_url;
     if ((!updates.dm_email || !updates.phone) && fbUrl) {
       logger.log(`[5/5] Scraping Facebook page for ${lead.company_name}`);

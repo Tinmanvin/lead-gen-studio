@@ -19,7 +19,7 @@ import { schemaTask, logger } from "@trigger.dev/sdk/v3";
 import { z } from "zod";
 import Anthropic from "@anthropic-ai/sdk";
 import { supabase } from "../../lib/supabase-server.js";
-import { verifyEmail, verifyFirstOf } from "./email-verification.js";
+import { verifyEmail } from "./email-verification.js";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -325,31 +325,16 @@ async function findEmailWithJina(website: string): Promise<string | null> {
   return null;
 }
 
-const FALLBACK_PREFIXES = ["info", "contact", "hello", "admin", "enquiries", "office", "mail"];
-
 async function findContactEmail(
   website: string
 ): Promise<{ email: string; method: string; status: string } | null> {
-  const domain = extractDomain(website);
-  if (!domain) return null;
-
-  // 1. Jina scrape — email found directly on the page, trust it
   const fromJina = await findEmailWithJina(website);
-  if (fromJina) {
-    const result = await verifyEmail(fromJina, "website");
-    logger.log(`Jina email ${fromJina} → ${result.status}`);
-    if (result.shouldUse) {
-      return { email: fromJina, method: "website", status: result.status };
-    }
-    // If Jina found something but it's rejected/invalid, still try patterns below
-  }
+  if (!fromJina) return null;
 
-  // 2. Pattern waterfall — try common prefixes in order, SMTP verify each
-  const candidates = FALLBACK_PREFIXES.map((p) => `${p}@${domain}`);
-  const hit = await verifyFirstOf(candidates, "pattern");
-  if (hit) {
-    logger.log(`Pattern email ${hit.email} → ${hit.result.status}`);
-    return { email: hit.email, method: "pattern", status: hit.result.status };
+  const result = await verifyEmail(fromJina, "website");
+  logger.log(`Jina email ${fromJina} → ${result.status}`);
+  if (result.shouldUse) {
+    return { email: fromJina, method: "website", status: result.status };
   }
 
   return null;
