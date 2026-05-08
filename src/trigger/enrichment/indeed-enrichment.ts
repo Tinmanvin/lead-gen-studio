@@ -19,7 +19,7 @@ import { schemaTask, logger } from "@trigger.dev/sdk/v3";
 import { z } from "zod";
 import Anthropic from "@anthropic-ai/sdk";
 import { supabase } from "../../lib/supabase-server.js";
-import { verifyEmail, verifyFirstOf } from "./email-verification.js";
+import { verifyEmail } from "./email-verification.js";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -371,34 +371,13 @@ async function findEmailWithJina(website: string): Promise<string | null> {
 async function findContactEmail(
   website: string
 ): Promise<{ email: string; method: string; status: string } | null> {
-  // 1. Jina crawls contact pages for a visible email
   const fromJina = await findEmailWithJina(website);
-  if (fromJina) {
-    const result = await verifyEmail(fromJina, "website");
-    logger.log(`Jina email ${fromJina} → ${result.status}`);
-    if (result.shouldUse) {
-      return { email: fromJina, method: "website", status: result.status };
-    }
-  }
+  if (!fromJina) return null;
 
-  // 2. Pattern fallback — SMTP verify common prefixes against the domain
-  try {
-    const domain = new URL(website).hostname.replace(/^www\./, "");
-    const patterns = [
-      `info@${domain}`,
-      `hello@${domain}`,
-      `contact@${domain}`,
-      `enquiries@${domain}`,
-      `admin@${domain}`,
-      `office@${domain}`,
-    ];
-    const hit = await verifyFirstOf(patterns, "pattern");
-    if (hit) {
-      logger.log(`Pattern email ${hit.email} → ${hit.result.status}`);
-      return { email: hit.email, method: "pattern", status: hit.result.status };
-    }
-  } catch {
-    // invalid URL — skip pattern fallback
+  const result = await verifyEmail(fromJina, "website");
+  logger.log(`Jina email ${fromJina} → ${result.status}`);
+  if (result.shouldUse) {
+    return { email: fromJina, method: "website", status: result.status };
   }
 
   return null;
