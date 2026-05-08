@@ -103,7 +103,7 @@ export const JOB_CATEGORIES: Record<
     searchTerms: [
       "lead generation specialist",
       "business development manager",
-      "sales executive",
+      "marketing manager",
       "outbound lead generation",
       "business development representative",
       "marketing coordinator",
