@@ -219,29 +219,53 @@ async function searchTavily(query: string): Promise<string | null> {
 }
 
 // ─────────────────────────────────────────────
-// Step 1d — Exa search (last resort)
+// Step 1d — Exa: search for email directly in indexed snippets
 // ─────────────────────────────────────────────
 
-async function searchExa(query: string): Promise<string | null> {
+interface ExaResult { url?: string; text?: string; highlights?: string[] }
+
+async function exaSearch(query: string, numResults = 5): Promise<ExaResult[]> {
   const apiKey = process.env.EXA_API_KEY;
-  if (!apiKey) return null;
+  if (!apiKey) return [];
 
   try {
     const res = await fetch("https://api.exa.ai/search", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": apiKey },
-      body: JSON.stringify({ query, numResults: 5 }),
+      body: JSON.stringify({ query, numResults, contents: { text: { maxCharacters: 800 } } }),
       signal: AbortSignal.timeout(12000),
     });
-
-    if (!res.ok) return null;
-    const data = await res.json() as { results?: Array<{ url?: string }> };
-    const urls = (data.results ?? []).map((r) => r.url ?? "").filter(Boolean);
-    return pickBestUrl(urls);
+    if (!res.ok) return [];
+    const data = await res.json() as { results?: ExaResult[] };
+    return data.results ?? [];
   } catch (err) {
     logger.warn("Exa search failed", { error: String(err) });
-    return null;
+    return [];
   }
+}
+
+// Scan Exa result text/snippets for a real email address
+async function searchExaForEmail(companyName: string, location: string | null): Promise<string | null> {
+  const q = location
+    ? `"${companyName}" ${location} email contact`
+    : `"${companyName}" email contact`;
+
+  const results = await exaSearch(q, 8);
+  for (const r of results) {
+    const blob = [r.text ?? "", ...(r.highlights ?? [])].join(" ");
+    const email = extractEmailFromText(blob);
+    if (email) {
+      logger.log(`Email from Exa snippet: ${email}`);
+      return email;
+    }
+  }
+  return null;
+}
+
+async function searchExa(query: string): Promise<string | null> {
+  const results = await exaSearch(query, 5);
+  const urls = results.map((r) => r.url ?? "").filter(Boolean);
+  return pickBestUrl(urls);
 }
 
 // ─────────────────────────────────────────────
@@ -556,28 +580,28 @@ export const indeedEnrichment = schemaTask({
     // Step 1: Read job listing — extracts email + website in one call
     const listing = await readJobListing(job.source_url as string | null);
 
-    // Step 2: Find company website
+    // Step 2: Exa snippet scan — search indexed web for a real email address directly
+    // This hits business directories, chamber listings, footer-indexed pages etc.
+    const exaEmail = await searchExaForEmail(job.company_name, job.location);
+
+    // Step 3: Find company website (needed for cross-contamination + Jina fallback)
     let website = job.company_website as string | null;
     const isInvalidWebsite = !website || website.includes("localhost") || website.includes("127.0.0.1");
     if (isInvalidWebsite) {
       website = await findCompanyWebsite(job.company_name, job.location, listing.website);
     }
 
-    if (!website) {
-      await supabase.from("indeed_jobs").update({ status: "found" }).eq("id", jobId);
-      logger.log(`${job.company_name}: no website found — staying in found`);
-      return { success: true, jobId, emailFound: false, status: "found" };
+    // Step 4: Cross-contamination check
+    if (website) {
+      const alreadyInLeads = await isAlreadyInLeads(job.company_name, website);
+      if (alreadyInLeads) {
+        await supabase.from("indeed_jobs").update({ status: "skipped" }).eq("id", jobId);
+        logger.log(`${job.company_name}: already in leads table — skipped`);
+        return { success: true, jobId, reason: "cross_contamination" };
+      }
     }
 
-    // Step 2: Cross-contamination check (after website found so we can check domain too)
-    const alreadyInLeads = await isAlreadyInLeads(job.company_name, website);
-    if (alreadyInLeads) {
-      await supabase.from("indeed_jobs").update({ status: "skipped" }).eq("id", jobId);
-      logger.log(`${job.company_name}: already in leads table — skipped`);
-      return { success: true, jobId, reason: "cross_contamination" };
-    }
-
-    // Step 3: Find and verify contact email — listing email takes priority
+    // Step 5: Find and verify contact email — priority: listing → Exa snippet → Jina contact page
     let emailHit = null;
 
     if (listing.email) {
@@ -588,8 +612,23 @@ export const indeedEnrichment = schemaTask({
       }
     }
 
-    if (!emailHit) {
+    if (!emailHit && exaEmail) {
+      const result = await verifyEmail(exaEmail, "exa");
+      logger.log(`Exa snippet email ${exaEmail} → ${result.status}`);
+      if (result.shouldUse) {
+        emailHit = { email: exaEmail, method: "exa", status: result.status };
+      }
+    }
+
+    if (!emailHit && website) {
       emailHit = await findContactEmail(website);
+    }
+
+    if (!emailHit) {
+      if (website) await supabase.from("indeed_jobs").update({ company_website: website }).eq("id", jobId);
+      else await supabase.from("indeed_jobs").update({ status: "found" }).eq("id", jobId);
+      logger.log(`${job.company_name}: no verified email found`);
+      return { success: true, jobId, emailFound: false, status: "found" };
     }
 
     if (!emailHit) {
