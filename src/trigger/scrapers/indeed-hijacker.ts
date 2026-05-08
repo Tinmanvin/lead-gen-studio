@@ -431,7 +431,7 @@ async function scrapeReedApi(
   const reedParams: Record<string, string> = {
     keywords: searchTerm,
     daysAgedAtMost: "3",
-    resultsToTake: "10",
+    resultsToTake: "25",
   };
   if (location) reedParams.locationName = location;
   const params = new URLSearchParams(reedParams);

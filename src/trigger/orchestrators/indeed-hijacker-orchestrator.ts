@@ -78,7 +78,7 @@ export const indeedHijackerScrapeOrchestrator = schedules.task({
       if (categoryKey === "social") continue;
       if (cats[categoryKey] === false) continue;
 
-      const terms = categoryConfig.searchTerms.slice(0, 3);
+      const terms = categoryConfig.searchTerms.slice(0, 5);
 
       for (const searchTerm of terms) {
         // ── AU boards — per city ──────────────────────────────────────
