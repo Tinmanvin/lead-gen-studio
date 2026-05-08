@@ -19,6 +19,7 @@ import { schemaTask, logger } from "@trigger.dev/sdk/v3";
 import { z } from "zod";
 import Anthropic from "@anthropic-ai/sdk";
 import { supabase } from "../../lib/supabase-server.js";
+import { verifyEmail, verifyFirstOf } from "./email-verification.js";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -324,16 +325,31 @@ async function findEmailWithJina(website: string): Promise<string | null> {
   return null;
 }
 
-async function findContactEmail(website: string): Promise<string | null> {
-  // Primary: Jina crawl
-  const fromJina = await findEmailWithJina(website);
-  if (fromJina) return fromJina;
+const FALLBACK_PREFIXES = ["info", "contact", "hello", "admin", "enquiries", "office", "mail"];
 
-  // Last resort: guess info@ from domain
+async function findContactEmail(
+  website: string
+): Promise<{ email: string; method: string; status: string } | null> {
   const domain = extractDomain(website);
-  if (domain) {
-    logger.log(`Email fallback: info@${domain}`);
-    return `info@${domain}`;
+  if (!domain) return null;
+
+  // 1. Jina scrape — email found directly on the page, trust it
+  const fromJina = await findEmailWithJina(website);
+  if (fromJina) {
+    const result = await verifyEmail(fromJina, "website");
+    logger.log(`Jina email ${fromJina} → ${result.status}`);
+    if (result.shouldUse) {
+      return { email: fromJina, method: "website", status: result.status };
+    }
+    // If Jina found something but it's rejected/invalid, still try patterns below
+  }
+
+  // 2. Pattern waterfall — try common prefixes in order, SMTP verify each
+  const candidates = FALLBACK_PREFIXES.map((p) => `${p}@${domain}`);
+  const hit = await verifyFirstOf(candidates, "pattern");
+  if (hit) {
+    logger.log(`Pattern email ${hit.email} → ${hit.result.status}`);
+    return { email: hit.email, method: "pattern", status: hit.result.status };
   }
 
   return null;
@@ -529,15 +545,16 @@ export const indeedEnrichment = schemaTask({
       return { success: true, jobId, reason: "cross_contamination" };
     }
 
-    // Step 3: Find contact email
-    const email = await findContactEmail(website);
-    const emailFound = Boolean(email);
+    // Step 3: Find and verify contact email
+    const emailHit = await findContactEmail(website);
 
-    if (!emailFound) {
+    if (!emailHit) {
       await supabase.from("indeed_jobs").update({ company_website: website }).eq("id", jobId);
-      logger.log(`${job.company_name}: website found but no email`);
+      logger.log(`${job.company_name}: no verified email found`);
       return { success: true, jobId, emailFound: false, status: "found" };
     }
+
+    const { email, method: emailMethod, status: emailStatus } = emailHit;
 
     // Step 4: Generate icebreaker
     const icebreaker = await generateIcebreaker(
@@ -559,6 +576,9 @@ export const indeedEnrichment = schemaTask({
         company_website: website,
         dm_email: email,
         email_found: true,
+        email_verified: true,
+        email_method: emailMethod,
+        email_status: emailStatus,
         status: "found",
       }).eq("id", jobId);
       return { success: true, jobId, emailFound: true, status: "found" };
@@ -572,13 +592,16 @@ export const indeedEnrichment = schemaTask({
       company_website: website,
       dm_email: email,
       email_found: true,
+      email_verified: true,
+      email_method: emailMethod,
+      email_status: emailStatus,
       template_used: template.category,
       email_subject: subject,
       email_body: body,
       status: "queued",
     }).eq("id", jobId);
 
-    logger.log(`${job.company_name}: enriched and queued`, { email, subject });
+    logger.log(`${job.company_name}: enriched and queued`, { email, emailMethod, emailStatus, subject });
 
     return { success: true, jobId, emailFound: true, status: "queued" };
   },

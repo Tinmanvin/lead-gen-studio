@@ -16,6 +16,9 @@ export interface IndeedJob {
   company_website: string | null;
   dm_email: string | null;
   email_found: boolean;
+  email_verified: boolean;
+  email_method: string | null;
+  email_status: string | null;
   template_used: string | null;
   email_subject: string | null;
   email_body: string | null;

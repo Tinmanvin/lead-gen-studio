@@ -13,6 +13,7 @@
 import { schemaTask, logger } from "@trigger.dev/sdk/v3";
 import { z } from "zod";
 import { supabase } from "../../lib/supabase-server.js";
+import { verifyEmail, verifyFirstOf } from "./email-verification.js";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -440,11 +441,22 @@ export const emailEnrichment = schemaTask({
     let ownerName: string | null = lead.dm_name ?? null;
     let foundVia = "none";
 
+    let emailMethod = "none";
+    let emailStatus = "unverified";
+
     // ── Source 1: Website deep scrape ──────────────────────────────────────
     logger.log(`[1/5] Scraping website for ${lead.company_name}`);
     const scraped = await scrapeWebsite(lead.website);
 
-    if (scraped.email) { updates.dm_email = scraped.email; foundVia = "website"; }
+    if (scraped.email) {
+      const vResult = await verifyEmail(scraped.email, "website");
+      if (vResult.shouldUse) {
+        updates.dm_email = scraped.email;
+        foundVia = "website";
+        emailMethod = "website";
+        emailStatus = vResult.status;
+      }
+    }
     if (scraped.ownerName && !ownerName) { ownerName = scraped.ownerName; updates.dm_name = ownerName; }
     if (scraped.ownerTitle && !lead.dm_title) updates.dm_title = scraped.ownerTitle;
     if (scraped.phone && !lead.phone) updates.phone = scraped.phone;
@@ -457,8 +469,13 @@ export const emailEnrichment = schemaTask({
       const exaOwner = await exaOwnerSearch(lead.company_name, lead.city, lead.website);
 
       if (exaOwner.email && !updates.dm_email) {
-        updates.dm_email = exaOwner.email;
-        foundVia = "exa_web";
+        const vResult = await verifyEmail(exaOwner.email, "exa");
+        if (vResult.shouldUse) {
+          updates.dm_email = exaOwner.email;
+          foundVia = "exa_web";
+          emailMethod = "exa";
+          emailStatus = vResult.status;
+        }
       }
       if (exaOwner.ownerName && !ownerName) {
         ownerName = exaOwner.ownerName;
@@ -481,16 +498,20 @@ export const emailEnrichment = schemaTask({
       if (liResult.title && !updates.dm_title) updates.dm_title = liResult.title;
     }
 
-    // ── Source 4: Email pattern generation ─────────────────────────────────
-    // Always generate patterns — even without owner name we use owner/director/info@ prefixes.
-    // For small businesses these reliably reach the decision-maker (they ARE the info@ person).
+    // ── Source 4: Email pattern generation (verified waterfall) ────────────
     if (!updates.dm_email) {
-      logger.log(`[4/5] Generating email patterns for ${ownerName ?? "unknown owner"} @ ${domain}`);
+      logger.log(`[4/5] Pattern waterfall for ${ownerName ?? "unknown"} @ ${domain}`);
       const patterns = generateEmailPatterns(ownerName, domain);
-      // Personal name pattern first if available, else owner@ / director@ / info@
-      updates.dm_email = patterns[0];
-      foundVia = ownerName ? "pattern_personal" : "pattern_generic";
-      logger.log(`Pattern email: ${patterns[0]} (${patterns.length} alternatives)`);
+      const hit = await verifyFirstOf(patterns, "pattern");
+      if (hit) {
+        updates.dm_email = hit.email;
+        foundVia = ownerName ? "pattern_personal" : "pattern_generic";
+        emailMethod = "pattern";
+        emailStatus = hit.result.status;
+        logger.log(`Pattern verified: ${hit.email} (${hit.result.status})`);
+      } else {
+        logger.log(`Pattern waterfall: no verified email found for ${domain}`);
+      }
     }
 
     // ── Source 5: Facebook page scrape ─────────────────────────────────────
@@ -500,13 +521,25 @@ export const emailEnrichment = schemaTask({
       const fbData = await scrapeFacebookPage(fbUrl);
 
       if (fbData.email && !updates.dm_email) {
-        updates.dm_email = fbData.email;
-        foundVia = "facebook";
+        const vResult = await verifyEmail(fbData.email, "website");
+        if (vResult.shouldUse) {
+          updates.dm_email = fbData.email;
+          foundVia = "facebook";
+          emailMethod = "website";
+          emailStatus = vResult.status;
+        }
       }
       if (fbData.phone && !updates.phone && !lead.phone) updates.phone = fbData.phone;
     }
 
     // ── Write all updates in one DB call ───────────────────────────────────
+    const hasEmail = !!updates.dm_email;
+    if (hasEmail) {
+      updates.email_verified = "true";
+      updates.email_method = emailMethod;
+      updates.email_status = emailStatus;
+    }
+
     if (Object.keys(updates).length > 0) {
       const { error: updateError } = await supabase
         .from("leads")
@@ -519,10 +552,9 @@ export const emailEnrichment = schemaTask({
       }
     }
 
-    const hasEmail = !!updates.dm_email;
     const hasName = !!ownerName;
 
-    logger.log(`Enriched ${lead.company_name}: email=${hasEmail} (${foundVia}), name=${hasName}, linkedin=${!!updates.dm_linkedin_url}`);
+    logger.log(`Enriched ${lead.company_name}: email=${hasEmail} (${foundVia}/${emailStatus}), name=${hasName}`);
 
     return {
       success: hasEmail || hasName,
@@ -530,6 +562,7 @@ export const emailEnrichment = schemaTask({
       ownerName,
       linkedinUrl: updates.dm_linkedin_url ?? null,
       source: foundVia,
+      emailStatus,
     };
   },
 });

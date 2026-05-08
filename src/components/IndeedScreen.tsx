@@ -13,6 +13,29 @@ const SOURCE_LABELS: Record<string, string> = {
   totaljobs: 'Totaljobs',
 };
 
+const EMAIL_METHOD_LABEL: Record<string, string> = {
+  website:  'site',
+  exa:      'exa',
+  pattern:  'pattern',
+};
+
+const EMAIL_STATUS_STYLE: Record<string, string> = {
+  verified:   'bg-green-500/15 text-green-400 border-green-500/20',
+  catch_all:  'bg-yellow-500/15 text-yellow-400 border-yellow-500/20',
+  timeout:    'bg-blue-500/15 text-blue-300 border-blue-500/20',
+};
+
+function EmailBadge({ method, status }: { method: string | null; status: string | null }) {
+  if (!method || !status) return <span className="text-white/20 text-xs">✗</span>;
+  const label = EMAIL_METHOD_LABEL[method] ?? method;
+  const style = EMAIL_STATUS_STYLE[status] ?? 'bg-white/10 text-white/40 border-white/10';
+  return (
+    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border ${style}`}>
+      {label}
+    </span>
+  );
+}
+
 const SOURCE_COLORS: Record<string, string> = {
   indeed: 'bg-blue-500/20 text-blue-300',
   seek: 'bg-green-500/20 text-green-300',
@@ -241,11 +264,7 @@ export default function IndeedScreen({ showConfig }: { showConfig?: boolean }) {
                         {job.salary && (
                           <span className="text-white/40 hidden xl:block">{job.salary}</span>
                         )}
-                        <span className="text-white/50">
-                          Email: {job.email_found
-                            ? <span className="text-green-400">✓</span>
-                            : <span className="text-white/20">✗</span>}
-                        </span>
+                        <EmailBadge method={job.email_method ?? null} status={job.email_status ?? null} />
                         <span className={statusColor(job.status)}>
                           {statusLabel(job.status)}
                         </span>
@@ -280,6 +299,15 @@ export default function IndeedScreen({ showConfig }: { showConfig?: boolean }) {
                       <div className="px-4 pb-4 pt-0 border-t border-white/[0.06] space-y-3">
                         {job.email_body ? (
                           <>
+                            {job.dm_email && (
+                              <div className="mt-3 flex items-center gap-2">
+                                <p className="text-xs uppercase tracking-wider text-white/35">To</p>
+                                <p className="text-xs text-white/60 font-mono">{job.dm_email}</p>
+                                {job.email_method && job.email_status && (
+                                  <EmailBadge method={job.email_method} status={job.email_status} />
+                                )}
+                              </div>
+                            )}
                             {job.email_subject && (
                               <div className="mt-3">
                                 <p className="text-xs uppercase tracking-wider text-white/35 mb-1">Subject</p>
