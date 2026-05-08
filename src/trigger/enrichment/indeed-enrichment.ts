@@ -122,8 +122,13 @@ function pickBestUrl(urls: string[]): string | null {
 // Free, no rate limit — might contain employer website link
 // ─────────────────────────────────────────────
 
-async function findWebsiteFromJobListing(sourceUrl: string | null): Promise<string | null> {
-  if (!sourceUrl) return null;
+interface ListingData {
+  website: string | null;
+  email: string | null;
+}
+
+async function readJobListing(sourceUrl: string | null): Promise<ListingData> {
+  if (!sourceUrl) return { website: null, email: null };
 
   try {
     const res = await fetch(`https://r.jina.ai/${sourceUrl}`, {
@@ -131,16 +136,20 @@ async function findWebsiteFromJobListing(sourceUrl: string | null): Promise<stri
       signal: AbortSignal.timeout(10000),
     });
 
-    if (!res.ok) return null;
+    if (!res.ok) return { website: null, email: null };
     const text = await res.text();
 
-    // Extract all URLs from the page text
-    const urlRegex = /https?:\/\/[^\s"'<>)]+/g;
-    const matches = [...text.matchAll(urlRegex)].map((m) => m[0]);
+    // Extract email directly from listing text — this is the application contact email
+    const email = extractEmailFromText(text);
 
-    return pickBestUrl(matches);
+    // Extract company website URL
+    const urlRegex = /https?:\/\/[^\s"'<>)]+/g;
+    const urls = [...text.matchAll(urlRegex)].map((m) => m[0]);
+    const website = pickBestUrl(urls);
+
+    return { website, email };
   } catch {
-    return null;
+    return { website: null, email: null };
   }
 }
 
@@ -242,13 +251,12 @@ async function searchExa(query: string): Promise<string | null> {
 async function findCompanyWebsite(
   companyName: string,
   location: string | null,
-  sourceUrl: string | null
+  listingWebsite: string | null
 ): Promise<string | null> {
-  // 1. Free: try job listing page first
-  const fromListing = await findWebsiteFromJobListing(sourceUrl);
-  if (fromListing) {
-    logger.log(`Website from job listing: ${fromListing}`);
-    return fromListing;
+  // 1. Website already extracted from listing read
+  if (listingWebsite) {
+    logger.log(`Website from job listing: ${listingWebsite}`);
+    return listingWebsite;
   }
 
   const query = location
@@ -510,10 +518,13 @@ export const indeedEnrichment = schemaTask({
 
     logger.log(`Enriching: ${job.company_name} — ${job.job_title}`);
 
-    // Step 1: Find company website
+    // Step 1: Read job listing — extracts email + website in one call
+    const listing = await readJobListing(job.source_url as string | null);
+
+    // Step 2: Find company website
     let website = job.company_website as string | null;
     if (!website) {
-      website = await findCompanyWebsite(job.company_name, job.location, job.source_url);
+      website = await findCompanyWebsite(job.company_name, job.location, listing.website);
     }
 
     if (!website) {
@@ -530,8 +541,20 @@ export const indeedEnrichment = schemaTask({
       return { success: true, jobId, reason: "cross_contamination" };
     }
 
-    // Step 3: Find and verify contact email
-    const emailHit = await findContactEmail(website);
+    // Step 3: Find and verify contact email — listing email takes priority
+    let emailHit = null;
+
+    if (listing.email) {
+      const result = await verifyEmail(listing.email, "website");
+      logger.log(`Listing email ${listing.email} → ${result.status}`);
+      if (result.shouldUse) {
+        emailHit = { email: listing.email, method: "listing", status: result.status };
+      }
+    }
+
+    if (!emailHit) {
+      emailHit = await findContactEmail(website);
+    }
 
     if (!emailHit) {
       await supabase.from("indeed_jobs").update({ company_website: website }).eq("id", jobId);
