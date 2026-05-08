@@ -58,11 +58,11 @@ export const JOB_CATEGORIES: Record<
   },
   sdr: {
     searchTerms: [
-      "sales development representative",
       "appointment setter",
+      "telesales",
+      "sales development representative",
       "lead qualifier",
       "outbound caller",
-      "telesales",
     ],
     template: "sdr",
     label: "Speed-to-Lead / SDR",
@@ -102,6 +102,8 @@ export const JOB_CATEGORIES: Record<
   marketing: {
     searchTerms: [
       "lead generation specialist",
+      "business development manager",
+      "sales executive",
       "outbound lead generation",
       "business development representative",
       "marketing coordinator",
@@ -594,11 +596,9 @@ async function scrapeReed(searchTerm: string, location: string): Promise<RawJob[
   }
 }
 
-async function scrapeTotaljobs(searchTerm: string, location: string): Promise<RawJob[]> {
-  const termSlug = searchTerm.toLowerCase().replace(/\s+/g, "-");
-  const url = location
-    ? `https://www.totaljobs.com/jobs/${termSlug}/in-${location}?postedin=3`
-    : `https://www.totaljobs.com/jobs/${termSlug}?postedin=3`;
+async function scrapeCVLibrary(searchTerm: string): Promise<RawJob[]> {
+  const encoded = encodeURIComponent(searchTerm);
+  const url = `https://www.cv-library.co.uk/search-jobs?q=${encoded}&new=1&tempperm=either`;
 
   const browser = await puppeteer.launch({
     headless: true,
@@ -611,20 +611,27 @@ async function scrapeTotaljobs(searchTerm: string, location: string): Promise<Ra
 
   try {
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
-    await new Promise((r) => setTimeout(r, 2000 + Math.random() * 1000));
+    await new Promise((r) => setTimeout(r, 2500 + Math.random() * 1000));
 
     const jobs = await page.evaluate((): RawJob[] => {
       const results: RawJob[] = [];
-      const cards = document.querySelectorAll("article.job, .job-item");
+      // CV-Library uses article elements with data-id, or li.job elements
+      const cards = document.querySelectorAll(
+        "article[data-id], li[data-id], .cv-list-item, article.job, li.job"
+      );
 
       cards.forEach((card) => {
-        const titleEl = card.querySelector("h2 a, .job-title a, a[data-at='job-item-title']");
-        const companyEl = card.querySelector(".employer a, a[data-at='job-item-company-name']");
-        const locationEl = card.querySelector(
-          ".location, [data-at='job-item-location']"
+        const titleEl = card.querySelector(
+          "h2 a, h3 a, .job-title a, a.job-title, a[data-bind='text: title']"
         );
-        const salaryEl = card.querySelector(".job-title__salary, .salary");
-        const dateEl = card.querySelector("time, .posted-date");
+        const companyEl = card.querySelector(
+          ".company a, .employer a, .company-name, a.company, [data-bind='text: company']"
+        );
+        const locationEl = card.querySelector(
+          ".location, .job-location, [data-bind='text: location']"
+        );
+        const salaryEl = card.querySelector(".salary, .job-salary, [data-bind='text: salary']");
+        const dateEl = card.querySelector("time, .date-posted, .posted");
         const linkEl = titleEl as HTMLAnchorElement | null;
 
         const title = titleEl?.textContent?.trim() ?? "";
@@ -646,7 +653,7 @@ async function scrapeTotaljobs(searchTerm: string, location: string): Promise<Ra
 
     return jobs;
   } catch (err) {
-    logger.warn("Totaljobs scrape failed", { url, error: String(err) });
+    logger.warn("CV-Library scrape failed", { url, error: String(err) });
     return [];
   } finally {
     await browser.close();
@@ -660,7 +667,7 @@ async function scrapeTotaljobs(searchTerm: string, location: string): Promise<Ra
 export const indeedHijackerScrape = schemaTask({
   id: "indeed-hijacker-scrape",
   schema: z.object({
-    board: z.enum(["adzuna_au", "adzuna_uk", "reed_api", "seek", "totaljobs"]),
+    board: z.enum(["adzuna_au", "adzuna_uk", "reed_api", "seek", "cv_library"]),
     searchTerm: z.string(),
     category: z.string(),
     location: z.string(),
@@ -692,15 +699,15 @@ export const indeedHijackerScrape = schemaTask({
       case "seek":
         rawJobs = await scrapeSeek(searchTerm, location);
         break;
-      case "totaljobs":
-        rawJobs = await scrapeTotaljobs(searchTerm, location);
+      case "cv_library":
+        rawJobs = await scrapeCVLibrary(searchTerm);
         break;
     }
 
     logger.log(`Found ${rawJobs.length} raw listings`);
 
     const country = board === "adzuna_au" || board === "seek" ? "AU" : "UK";
-    const sourceLabel = board === "adzuna_au" ? "adzuna_au" : board === "adzuna_uk" ? "adzuna_uk" : board;
+    const sourceLabel = board === "adzuna_au" ? "adzuna_au" : board === "adzuna_uk" ? "adzuna_uk" : board === "cv_library" ? "cv_library" : board;
 
     let saved = 0;
     let duplicates = 0;

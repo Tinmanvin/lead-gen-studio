@@ -6,7 +6,7 @@
  *
  * Board coverage:
  *   AU: Adzuna AU (5 cities) + Seek (5 cities)
- *   UK: Adzuna UK (nationwide) + Reed API (nationwide) + Totaljobs (nationwide)
+ *   UK: Adzuna UK (nationwide) + Reed API (nationwide) + CV-Library (nationwide)
  *
  * Categories: receptionist, intake_coordinator, live_chat, sdr, admin, after_hours
  */
@@ -97,7 +97,7 @@ export const indeedHijackerScrapeOrchestrator = schedules.task({
 
         allJobs.push({
           id: indeedHijackerScrape.id,
-          payload: { board: "totaljobs", searchTerm, category: categoryKey, location: "", userId },
+          payload: { board: "cv_library", searchTerm, category: categoryKey, location: "", userId },
         });
       }
     }
