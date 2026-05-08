@@ -114,7 +114,7 @@ function isJobBoardUrl(url: string): boolean {
 }
 
 function pickBestUrl(urls: string[]): string | null {
-  return urls.find((u) => u && !isJobBoardUrl(u)) ?? null;
+  return urls.find((u) => u && !isJobBoardUrl(u) && !u.includes("localhost") && !u.includes("127.0.0.1")) ?? null;
 }
 
 // ─────────────────────────────────────────────
@@ -245,6 +245,37 @@ async function searchExa(query: string): Promise<string | null> {
 }
 
 // ─────────────────────────────────────────────
+// Step 1e — DuckDuckGo HTML scrape (free, no key)
+// ─────────────────────────────────────────────
+
+async function searchDuckDuckGo(query: string): Promise<string | null> {
+  try {
+    const encoded = encodeURIComponent(query);
+    const res = await fetch(`https://html.duckduckgo.com/html/?q=${encoded}`, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml",
+      },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+    const hrefRegex = /href="(https?:\/\/[^"&]+)"/g;
+    const urls: string[] = [];
+    let match;
+    while ((match = hrefRegex.exec(html)) !== null) {
+      urls.push(match[1]);
+    }
+    const result = pickBestUrl(urls);
+    if (result) logger.log(`Website from DuckDuckGo: ${result}`);
+    return result;
+  } catch (err) {
+    logger.warn("DuckDuckGo search failed", { error: String(err) });
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────
 // Find company website — tries all sources in order
 // ─────────────────────────────────────────────
 
@@ -277,12 +308,16 @@ async function findCompanyWebsite(
     return fromTavily;
   }
 
-  // 4. Exa (last resort)
+  // 4. Exa
   const fromExa = await searchExa(query);
   if (fromExa) {
     logger.log(`Website from Exa: ${fromExa}`);
     return fromExa;
   }
+
+  // 5. DuckDuckGo (free fallback)
+  const fromDDG = await searchDuckDuckGo(query);
+  if (fromDDG) return fromDDG;
 
   return null;
 }
