@@ -18,6 +18,8 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const BOARD_LABELS: Record<string, string> = {
+  kaix_indeed_au: 'Indeed AU (Apify)',
+  kaix_indeed_uk: 'Indeed UK (Apify)',
   indeed_au: 'Adzuna AU',
   indeed_uk: 'Adzuna UK',
   seek: 'Seek',

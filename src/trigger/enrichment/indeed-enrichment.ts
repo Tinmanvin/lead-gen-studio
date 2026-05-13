@@ -269,29 +269,38 @@ async function searchExa(query: string): Promise<string | null> {
 }
 
 // ─────────────────────────────────────────────
-// Step 1e — DuckDuckGo HTML scrape (free, no key)
+// Step 1e — DuckDuckGo via Jina Reader (real web search, bypasses server-side bot blocking)
 // ─────────────────────────────────────────────
 
 async function searchDuckDuckGo(query: string): Promise<string | null> {
   try {
     const encoded = encodeURIComponent(query);
-    const res = await fetch(`https://html.duckduckgo.com/html/?q=${encoded}`, {
+    // Route DDG HTML search through Jina — headless browser renders the page,
+    // bypassing the IP-level block DDG applies to datacenter requests
+    const jinaUrl = `https://r.jina.ai/https://html.duckduckgo.com/html/?q=${encoded}`;
+    const res = await fetch(jinaUrl, {
       headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml",
+        "Accept": "text/plain",
+        "X-Return-Format": "text",
       },
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(15000),
     });
     if (!res.ok) return null;
-    const html = await res.text();
-    const hrefRegex = /href="(https?:\/\/[^"&]+)"/g;
+    const text = await res.text();
+
+    // Extract URLs from the returned page text
+    const urlRegex = /https?:\/\/[^\s"'<>)]+/g;
     const urls: string[] = [];
     let match;
-    while ((match = hrefRegex.exec(html)) !== null) {
-      urls.push(match[1]);
+    while ((match = urlRegex.exec(text)) !== null) {
+      const url = match[0].replace(/[.,;)]+$/, "");
+      if (!isJobBoardUrl(url) && !url.includes("duckduckgo") && !url.includes("jina.ai")) {
+        urls.push(url);
+      }
     }
+
     const result = pickBestUrl(urls);
-    if (result) logger.log(`Website from DuckDuckGo: ${result}`);
+    if (result) logger.log(`Website from DDG via Jina: ${result}`);
     return result;
   } catch (err) {
     logger.warn("DuckDuckGo search failed", { error: String(err) });
@@ -318,30 +327,30 @@ async function findCompanyWebsite(
     ? `"${companyName}" ${location} official website contact`
     : `"${companyName}" official website contact`;
 
-  // 2. Linkup (primary paid search)
+  // 2. DuckDuckGo Instant Answer API (free, no credits used)
+  const fromDDG = await searchDuckDuckGo(query);
+  if (fromDDG) return fromDDG;
+
+  // 3. Linkup (paid)
   const fromLinkup = await searchLinkup(query);
   if (fromLinkup) {
     logger.log(`Website from Linkup: ${fromLinkup}`);
     return fromLinkup;
   }
 
-  // 3. Tavily (fallback)
+  // 4. Tavily (paid)
   const fromTavily = await searchTavily(query);
   if (fromTavily) {
     logger.log(`Website from Tavily: ${fromTavily}`);
     return fromTavily;
   }
 
-  // 4. Exa
+  // 5. Exa — last resort for website finding, preserve credits for email search
   const fromExa = await searchExa(query);
   if (fromExa) {
     logger.log(`Website from Exa: ${fromExa}`);
     return fromExa;
   }
-
-  // 5. DuckDuckGo (free fallback)
-  const fromDDG = await searchDuckDuckGo(query);
-  if (fromDDG) return fromDDG;
 
   return null;
 }
@@ -367,6 +376,48 @@ function extractEmailFromText(text: string): string | null {
   });
 
   return preferred ?? candidates[0];
+}
+
+async function findEmailWithApify(website: string): Promise<string | null> {
+  const apifyToken = process.env.APIFY_API_KEY;
+  if (!apifyToken) return null;
+
+  try {
+    const res = await fetch(
+      `https://api.apify.com/v2/acts/pro100chok~extract-emails/run-sync-get-dataset-items?token=${apifyToken}&timeout=55`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          startUrls: [{ url: website }],
+          maxDepth: 2,
+          maxPagesPerDomain: 10,
+          concurrency: 1,
+          useProxy: false,
+        }),
+        signal: AbortSignal.timeout(60000),
+      }
+    );
+
+    if (!res.ok) return null;
+    const items = await res.json() as Array<{ emails?: string[] }>;
+    if (!items?.length) return null;
+
+    const emails = items[0]?.emails ?? [];
+    const skip = ["noreply", "no-reply", "donotreply", "example.com", "sentry", ".png", ".jpg"];
+    const candidates = emails.filter((e) => !skip.some((s) => e.toLowerCase().includes(s)));
+    if (!candidates.length) return null;
+
+    const preferred = candidates.find((e) => {
+      const local = e.split("@")[0].toLowerCase();
+      return ["contact", "info", "hello", "enquir", "admin", "office"].some((p) => local.startsWith(p));
+    });
+
+    return preferred ?? candidates[0];
+  } catch (err) {
+    logger.warn("Apify email extraction failed", { error: String(err) });
+    return null;
+  }
 }
 
 async function findEmailWithJina(website: string): Promise<string | null> {
@@ -395,6 +446,17 @@ async function findEmailWithJina(website: string): Promise<string | null> {
 async function findContactEmail(
   website: string
 ): Promise<{ email: string; method: string; status: string } | null> {
+  // Try Apify pro100chok first — smarter crawl, decodes obfuscated emails
+  const apifyEmail = await findEmailWithApify(website);
+  if (apifyEmail) {
+    const result = await verifyEmail(apifyEmail, "website");
+    logger.log(`Apify email ${apifyEmail} → ${result.status}`);
+    if (result.shouldUse) {
+      return { email: apifyEmail, method: "apify", status: result.status };
+    }
+  }
+
+  // Fall back to Jina contact page crawl
   const fromJina = await findEmailWithJina(website);
   if (!fromJina) return null;
 

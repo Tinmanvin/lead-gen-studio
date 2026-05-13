@@ -21,7 +21,6 @@ export const JOB_CATEGORIES: Record<
     searchTerms: [
       "receptionist",
       "front desk",
-      "front of house",
       "call handler",
       "virtual receptionist",
       "appointment scheduler",
@@ -48,7 +47,6 @@ export const JOB_CATEGORIES: Record<
     searchTerms: [
       "live chat agent",
       "chat support",
-      "customer support representative",
       "inbound sales representative",
       "online enquiries coordinator",
       "website support agent",
@@ -63,14 +61,23 @@ export const JOB_CATEGORIES: Record<
       "sales development representative",
       "lead qualifier",
       "outbound caller",
+      "telesales executive",
+      "sales executive",
+      "account executive",
+      "inside sales",
+      "lead generator",
+      "B2B sales representative",
+      "cold caller",
+      "outbound sales",
     ],
     template: "sdr",
     label: "Speed-to-Lead / SDR",
   },
   admin: {
     searchTerms: [
-      "office administrator",
-      "administrative assistant",
+      "practice administrator",
+      "clinic administrator",
+      "legal administrator",
       "scheduling coordinator",
       "follow-up coordinator",
       "client success coordinator",
@@ -103,7 +110,6 @@ export const JOB_CATEGORIES: Record<
     searchTerms: [
       "lead generation specialist",
       "business development manager",
-      "marketing manager",
       "outbound lead generation",
       "business development representative",
       "marketing coordinator",
@@ -112,7 +118,8 @@ export const JOB_CATEGORIES: Record<
       "growth marketer",
       "CRM coordinator",
       "prospecting specialist",
-      "marketing manager",
+      "B2B lead generator",
+      "marketing executive",
     ],
     template: "marketing",
     label: "Marketing / Lead Generation",
@@ -163,6 +170,7 @@ interface RawJob {
   salary: string | null;
   source_url: string | null;
   posted_text: string | null;
+  company_website?: string | null;
 }
 
 function parseHoursSincePosted(text: string | null): number | null {
@@ -198,7 +206,7 @@ async function checkAndSaveJob(
   userId: string
 ): Promise<"saved" | "duplicate" | "error"> {
   try {
-    // Check for duplicate today
+    // Dedup: one lead per company per country per day (company level — same company = same contact)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -207,14 +215,13 @@ async function checkAndSaveJob(
       .select("id")
       .eq("user_id", userId)
       .eq("company_name", job.company_name)
-      .eq("job_title", job.job_title)
       .eq("country", country)
       .gte("created_at", today.toISOString())
       .maybeSingle();
 
     if (todayDup) return "duplicate";
 
-    // Check repost count (same company + same general title in last 60 days)
+    // Check repost count (same company in last 60 days)
     const sixtyDaysAgo = new Date();
     sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
 
@@ -223,7 +230,6 @@ async function checkAndSaveJob(
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
       .eq("company_name", job.company_name)
-      .ilike("job_title", `%${job.job_title.split(" ").slice(0, 2).join(" ")}%`)
       .eq("country", country)
       .gte("created_at", sixtyDaysAgo.toISOString());
 
@@ -243,9 +249,13 @@ async function checkAndSaveJob(
       repost_count: (repostCount ?? 0) + 1,
       email_found: false,
       status: "found",
+      scrape_date: today.toISOString().split("T")[0],
+      company_website: job.company_website ?? null,
     });
 
+    // 23505 = unique_violation — race condition caught by DB constraint
     if (error) {
+      if (error.code === "23505") return "duplicate";
       logger.error("Save failed", { error: error.message, company: job.company_name });
       return "error";
     }
@@ -266,15 +276,16 @@ async function checkAndSaveJob(
 
 const RELEVANT_TITLE_TERMS = [
   // Receptionist / front desk
-  "receptionist", "front desk", "front of house", "front-of-house",
-  // Admin / coordination
-  "administrator", "administrative", "office manager", "office admin",
+  "receptionist", "front desk",
+  // Admin / coordination — niche-specific only
+  "practice administrator", "clinic administrator", "legal administrator",
+  "office manager", "office admin",
   "coordinator", "scheduling", "scheduler", "bookings",
   // Patient / intake
-  "patient", "intake", "care coordinator", "dental coordinator",
+  "patient", "intake coordinator", "care coordinator", "dental coordinator",
   "medical receptionist", "clinic coordinator", "practice manager",
   // Customer-facing / inbound
-  "customer service", "customer support", "call handler", "call centre",
+  "customer support", "call handler", "call centre",
   "inbound", "live chat", "chat agent", "web chat",
   // Sales / SDR adjacent
   "appointment setter", "lead qualifier", "telesales", "sales support",
@@ -311,6 +322,16 @@ const IRRELEVANT_TITLE_TERMS = [
   "payroll", "recruitment coordinator", "talent coordinator",
   // Skilled trades (not our market)
   "electrician", "plumber", "carpenter", "welder", "mechanic",
+  // Hospitality / food service — "front of house" here means bar/wait staff
+  "front of house", "front-of-house", "bartender", "bar staff", "barman",
+  "waiter", "waitress", "waitstaff", "food and beverage", "f&b",
+  "food service", "kitchen", "catering assistant",
+  // Care / NDIS / disability — not our buyer
+  "carer", "support worker", "ndis", "disability support", "aged care worker",
+  "personal care", "community care",
+  // Government pay-grade markers — public sector, long procurement cycles
+  "grade 2", "grade 3", "grade 4", "grade 5",
+  "aps 3", "aps 4", "aps 5", "aps 6",
   // Other unrelated
   "driver", "delivery", "warehouse", "cleaner", "chef", "cook", "barista",
   "security guard", "teacher", "lecturer", "professor",
@@ -661,13 +682,85 @@ async function scrapeCVLibrary(searchTerm: string): Promise<RawJob[]> {
 }
 
 // ─────────────────────────────────────────────
+// Kaix / Indeed — Apify actor (kaix/indeed-scraper)
+// $0.06/1K results — replaces Adzuna/Reed for Indeed.com coverage
+// Returns company website URL directly, skipping enrichment website-finding
+// ─────────────────────────────────────────────
+
+async function scrapeKaixIndeed(
+  searchTerm: string,
+  location: string,
+  country: "AU" | "UK"
+): Promise<RawJob[]> {
+  const apifyToken = process.env.APIFY_API_KEY;
+  if (!apifyToken) {
+    logger.warn("APIFY_API_KEY not set — skipping kaix scrape");
+    return [];
+  }
+
+  const input = {
+    keyword: searchTerm,
+    location: location || "",
+    country,
+    maxItems: 25,
+    fromDays: "3",
+    sort: "date",
+    searchMode: "basic",
+    proxyConfig: { useApifyProxy: true },
+  };
+
+  try {
+    const res = await fetch(
+      `https://api.apify.com/v2/acts/kaix~indeed-scraper/run-sync-get-dataset-items?token=${apifyToken}&timeout=110`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+        signal: AbortSignal.timeout(115000),
+      }
+    );
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.warn("Kaix Indeed API error", { status: res.status, body: body.slice(0, 200) });
+      return [];
+    }
+
+    const items = await res.json() as Record<string, unknown>[];
+
+    return items.map((item) => {
+      const company = item.company as Record<string, unknown> | undefined;
+      const companyUrls = (company?.urls ?? {}) as Record<string, unknown>;
+      const title = item.title as Record<string, unknown> | undefined;
+      const loc = item.location as Record<string, unknown> | undefined;
+      const salary = item.salary as Record<string, unknown> | undefined;
+      const urls = item.urls as Record<string, unknown> | undefined;
+      const dates = item.dates as Record<string, unknown> | undefined;
+
+      return {
+        job_title: String(title?.text ?? ""),
+        company_name: String(company?.name ?? ""),
+        location: String(loc?.formatted ?? location),
+        salary: salary?.text ? String(salary.text) : null,
+        source_url: urls?.indeed ? String(urls.indeed) : null,
+        posted_text: dates?.age ? String(dates.age) : null,
+        company_website: companyUrls.website ? String(companyUrls.website) : null,
+      };
+    }).filter((j) => j.job_title && j.company_name);
+  } catch (err) {
+    logger.warn("Kaix Indeed scrape threw", { error: String(err) });
+    return [];
+  }
+}
+
+// ─────────────────────────────────────────────
 // Task
 // ─────────────────────────────────────────────
 
 export const indeedHijackerScrape = schemaTask({
   id: "indeed-hijacker-scrape",
   schema: z.object({
-    board: z.enum(["adzuna_au", "adzuna_uk", "reed_api", "seek", "cv_library"]),
+    board: z.enum(["adzuna_au", "adzuna_uk", "reed_api", "seek", "cv_library", "kaix_indeed_au", "kaix_indeed_uk"]),
     searchTerm: z.string(),
     category: z.string(),
     location: z.string(),
@@ -702,11 +795,17 @@ export const indeedHijackerScrape = schemaTask({
       case "cv_library":
         rawJobs = await scrapeCVLibrary(searchTerm);
         break;
+      case "kaix_indeed_au":
+        rawJobs = await scrapeKaixIndeed(searchTerm, location, "AU");
+        break;
+      case "kaix_indeed_uk":
+        rawJobs = await scrapeKaixIndeed(searchTerm, location, "UK");
+        break;
     }
 
     logger.log(`Found ${rawJobs.length} raw listings`);
 
-    const country = board === "adzuna_au" || board === "seek" ? "AU" : "UK";
+    const country = ["adzuna_au", "seek", "kaix_indeed_au"].includes(board) ? "AU" : "UK";
     const sourceLabel = board === "adzuna_au" ? "adzuna_au" : board === "adzuna_uk" ? "adzuna_uk" : board === "cv_library" ? "cv_library" : board;
 
     let saved = 0;

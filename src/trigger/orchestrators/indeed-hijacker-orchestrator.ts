@@ -16,6 +16,7 @@ import {
   JOB_CATEGORIES,
   AU_CITIES_INDEED,
   AU_CITIES_SEEK,
+  UK_CITIES_INDEED,
 } from "../scrapers/indeed-hijacker.js";
 import { indeedEnrichment } from "../enrichment/indeed-enrichment.js";
 import { supabase } from "../../lib/supabase-server.js";
@@ -78,7 +79,7 @@ export const indeedHijackerScrapeOrchestrator = schedules.task({
       if (categoryKey === "social") continue;
       if (cats[categoryKey] === false) continue;
 
-      const terms = categoryConfig.searchTerms.slice(0, 5);
+      const terms = categoryConfig.searchTerms;
 
       for (const searchTerm of terms) {
         // ── AU boards — per city ──────────────────────────────────────
@@ -99,9 +100,17 @@ export const indeedHijackerScrapeOrchestrator = schedules.task({
               });
             }
           }
+          if (enabled("kaix_indeed_au")) {
+            for (const city of AU_CITIES_INDEED) {
+              allJobs.push({
+                id: indeedHijackerScrape.id,
+                payload: { board: "kaix_indeed_au", searchTerm, category: categoryKey, location: city, userId },
+              });
+            }
+          }
         }
 
-        // ── UK boards — nationwide ────────────────────────────────────
+        // ── UK boards — nationwide / per city ────────────────────────
         if (geo.uk) {
           if (enabled("indeed_uk")) {
             allJobs.push({
@@ -120,6 +129,14 @@ export const indeedHijackerScrapeOrchestrator = schedules.task({
               id: indeedHijackerScrape.id,
               payload: { board: "cv_library", searchTerm, category: categoryKey, location: "", userId },
             });
+          }
+          if (enabled("kaix_indeed_uk")) {
+            for (const city of UK_CITIES_INDEED) {
+              allJobs.push({
+                id: indeedHijackerScrape.id,
+                payload: { board: "kaix_indeed_uk", searchTerm, category: categoryKey, location: city, userId },
+              });
+            }
           }
         }
       }
